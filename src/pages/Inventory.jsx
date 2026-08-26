@@ -16,7 +16,8 @@ import {
   ArrowLeftRight,
   ClipboardList,
   UploadCloud,
-  FileText
+  FileText,
+  Pencil
 } from 'lucide-react';
 import AdminLayout from '../components/layout/AdminLayout';
 import PartyCard from '../components/layout/PartyCard';
@@ -79,6 +80,7 @@ const Inventory = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingReturnId, setEditingReturnId] = useState(null);
+  const [editingIssueId, setEditingIssueId] = useState(null);
 
   // Edit State
   const [editDataMap, setEditDataMap] = useState({}); // { [id]: rowObject }
@@ -165,7 +167,8 @@ const Inventory = () => {
     { key: 'eventDate', label: 'Event Date' },
     { key: 'eventType', label: 'Event Type' },
     { key: 'estimatedCost', label: 'Estimated Cost' },
-    { key: 'dishes', label: 'Dishes' }
+    { key: 'dishes', label: 'Dishes' },
+    { key: 'actions', label: 'Actions' }
   ] : [
     { key: 'serial', label: 'Serial' },
     { key: 'type', label: 'Type' },
@@ -887,16 +890,64 @@ const Inventory = () => {
     });
   }, [isReturnModalOpen, isEditing, returnForm.itemsName, returnForm.inventoryType, returnForm.returnDate, issueHistory, returnHistory, items, itemStockMap]);
 
+  const handleEditIssue = (row) => {
+    setIssueForm({
+      forType: row.forType || 'H3',
+      issuer: row.issuer || '',
+      itemId: row.itemId || '',
+      inventoryType: row.inventoryType || '',
+      department: row.department || '',
+      itemsName: row.itemName || '',
+      openingBalance: row.openingBalance !== undefined && row.openingBalance !== null ? String(row.openingBalance) : '',
+      perUnit: row.rentingRate !== undefined && row.rentingRate !== null ? String(row.rentingRate) : '',
+      unit: row.damageRate !== undefined && row.damageRate !== null ? String(row.damageRate) : '',
+      eventDate: toInputDate(row.eventDate),
+      partyName: row.partyName || '',
+      eventTime: row.eventType || '',
+      foodName: row.venueName || '',
+      issueData: row.qty !== undefined && row.qty !== null ? String(row.qty) : '',
+      dishes: row.dishes || '',
+      remarks: row.remarks || '',
+      imageUrl: row.imageUrl || ''
+    });
+    setEditingIssueId(row.id);
+    setIsEditing(true);
+    setIsIssueModalOpen(true);
+    if (row.imageUrl) setImagePreview(getDisplayableImageUrl(row.imageUrl));
+    else setImagePreview(null);
+  };
+
+  const handleDeleteSingleRecord = async (row) => {
+    const isIssued = activeTab === 'issued';
+    const targetTable = isIssued ? TABLES.ISSUES : TABLES.RETURNS;
+    const label = row.serial || row.itemName || 'this record';
+
+    if (!window.confirm(`Are you sure you want to delete ${label}?`)) return;
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from(targetTable).delete().eq('id', row.id);
+      if (error) throw new Error(error.message);
+
+      showToast(`Record ${label} deleted successfully`);
+      fetchHistory();
+    } catch (err) {
+      showToast(err.message || 'Failed to delete record', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleIssueSubmit = async (e) => {
     if (e) e.preventDefault();
     setIsSubmitting(true);
     try {
-      if (validationState.isOver) {
+      if (!isEditing && validationState.isOver) {
         showToast(`Error: Exceeds available stock for this date (Limit: ${validationState.availableForThisGroup})`, 'error');
         setIsSubmitting(false);
         return;
       }
-      if (!issueForm.itemId) {
+      if (!isEditing && !issueForm.itemId) {
         showToast('Select an item first.', 'error');
         setIsSubmitting(false);
         return;
@@ -907,8 +958,7 @@ const Inventory = () => {
       const consumed = parseFloat(issueForm.issueData) || 0;
       const closing = opening - consumed;
 
-      const { error } = await supabase.from(TABLES.ISSUES).insert({
-        item_id: issueForm.itemId,
+      const payload = {
         party_name: cleanText(issueForm.partyName) || null,
         event_date: issueForm.eventDate || null,
         issue_qty: consumed,
@@ -923,11 +973,21 @@ const Inventory = () => {
         for_type: issueForm.forType || ENUMS.FOR_TYPE.RENT,
         issuer: cleanText(issueForm.issuer) || null,
         dishes: cleanText(issueForm.dishes) || null
-      });
-      if (error) throw new Error(error.message);
+      };
 
-      showToast('Issue recorded successfully');
+      if (isEditing && editingIssueId) {
+        const { error } = await supabase.from(TABLES.ISSUES).update(payload).eq(COLUMNS.ISSUES.ID, editingIssueId);
+        if (error) throw new Error(error.message);
+      } else {
+        payload.item_id = issueForm.itemId;
+        const { error } = await supabase.from(TABLES.ISSUES).insert(payload);
+        if (error) throw new Error(error.message);
+      }
+
+      showToast(isEditing ? 'Issue record updated successfully' : 'Issue recorded successfully');
       setIsIssueModalOpen(false);
+      setIsEditing(false);
+      setEditingIssueId(null);
       setIssueForm({ forType: 'H3', issuer: '', itemId: '', inventoryType: '', department: '', itemsName: '', openingBalance: '', perUnit: '', unit: '', eventDate: '', partyName: '', eventTime: '', foodName: '', issueData: '', dishes: '', remarks: '', imageUrl: '' });
       setSelectedImage(null); setImagePreview(null);
     } catch (err) {
@@ -1545,6 +1605,23 @@ const Inventory = () => {
                                   : col.key === 'eventType' ? currentData.eventType || '-'
                                   : col.key === 'dishes' ? currentData.dishes || '-'
                                   : col.key === 'estimatedCost' ? (<span className="font-bold text-emerald-600">₹{parseFloat(currentData.estimatedCost || 0).toFixed(2)}</span>
+                                  ) : col.key === 'actions' ? (
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <button
+                                        onClick={() => activeTab === 'issued' ? handleEditIssue(currentData) : handleEditReturn(currentData)}
+                                        className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all"
+                                        title="Edit Record"
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteSingleRecord(currentData)}
+                                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                        title="Delete Record"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    </div>
                                   ) : col.key === 'image' ? (
                                     currentData.imageUrl && currentData.imageUrl !== 'No Image' ? (
                                       <div className="relative flex justify-center group/img">
@@ -1583,7 +1660,22 @@ const Inventory = () => {
                                 ) : isSelected && activeTab === 'return' && col.key === 'missing' ? (
                                   <input type="number" value={currentData.missing} onChange={(e) => handleInlineEdit(row.id, 'missing', e.target.value)} className="w-20 px-2 py-1 bg-white border border-violet-200 rounded text-center text-xs font-bold text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
                                 ) : col.key === 'actions' ? (
-                                  <button onClick={() => handleEditReturn(currentData)} className="p-2 bg-slate-100 text-slate-400 hover:bg-violet-600 hover:text-white rounded-lg transition-all" title="Edit Record"><Settings2 className="h-4 w-4" /></button>
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <button
+                                      onClick={() => activeTab === 'issued' ? handleEditIssue(currentData) : handleEditReturn(currentData)}
+                                      className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all"
+                                      title="Edit Record"
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteSingleRecord(currentData)}
+                                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                      title="Delete Record"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </div>
                                 ) : col.key === 'date' ? (
                                   <span className="text-slate-400 whitespace-nowrap">{formatDate(currentData.createdAt)}</span>
                                 ) : col.key === 'eventDate' || col.key === 'returnDate' ? (
@@ -1627,7 +1719,7 @@ const Inventory = () => {
                   <div className={`p-2 rounded-xl ${isIssueModalOpen ? 'bg-violet-100 text-violet-600' : 'bg-fuchsia-100 text-fuchsia-600'}`}>
                     {isIssueModalOpen ? <ClipboardList className="h-5 w-5" /> : <ArrowLeftRight className="h-5 w-5" />}
                   </div>
-                  {isEditing ? 'Edit Return Record' : (isIssueModalOpen ? 'Issue Items to Party' : 'Return Items from Party')}
+                  {isEditing ? (isIssueModalOpen ? 'Edit Issue Record' : 'Edit Return Record') : (isIssueModalOpen ? 'Issue Items to Party' : 'Return Items from Party')}
                 </h2>
                 <button onClick={() => { setIsIssueModalOpen(false); setIsReturnModalOpen(false); setIsEditing(false); }} className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 transition-all font-sans"><X className="h-5 w-5" /></button>
               </div>
