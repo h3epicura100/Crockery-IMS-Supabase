@@ -371,49 +371,49 @@ export default function Dashboard() {
 
   return (
     <AdminLayout>
-      <div className="h-[calc(100vh-42px)] bg-[#f0f2f8] font-sans flex flex-col overflow-hidden">
+      <div className="min-h-screen bg-[#f0f2f8] font-sans flex flex-col">
         <div className="flex-1 flex flex-col min-h-0 space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-1000">
 
-          <div className="flex items-center justify-between px-8 pt-6 pb-4">
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Executive Dashboard</h1>
+          <div className="flex flex-wrap items-center justify-between gap-4 px-4 sm:px-8 pt-6 pb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Executive Dashboard</h1>
             <div className="flex items-center gap-3">
-              <button onClick={() => activeTab === "today" ? fetchDashboardData() : fetchHistoryData()} className="p-4 bg-white border border-violet-100 rounded-xl text-slate-400 hover:text-violet-600 shadow-xl shadow-violet-500/5 transition-all active:scale-95">
-                <RefreshCw className={`h-5 w-5 ${(loading || historyLoading) ? 'animate-spin' : ''}`} />
+              <button onClick={() => activeTab === "today" ? fetchDashboardData() : fetchHistoryData()} className="p-3.5 bg-white border border-violet-100 rounded-xl text-slate-400 hover:text-violet-600 shadow-xl shadow-violet-500/5 transition-all active:scale-95">
+                <RefreshCw className={`h-4.5 w-4.5 ${(loading || historyLoading) ? 'animate-spin' : ''}`} />
               </button>
-              <div className="h-10 w-[1px] bg-slate-200 mx-2"></div>
+              <div className="h-8 w-[1px] bg-slate-200 mx-1"></div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Last updated: <span className="text-slate-900">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 px-4 sm:px-6">
             <MetricCard title="Total Purchased" value={formatNumber(dashboardStats.totalPurchased)} icon={Package} color="bg-violet-600" loading={loading} />
             <MetricCard title="Opening Balance" value={formatNumber(dashboardStats.openingBalance)} icon={Layout} color="bg-fuchsia-600" loading={loading} />
             <MetricCard title="Total Issued" value={formatNumber(dashboardStats.totalIssued)} icon={Activity} color="bg-blue-500" loading={loading} />
             <MetricCard title="Total Returned" value={formatNumber(dashboardStats.totalReturned)} icon={RefreshCw} color="bg-emerald-500" loading={loading} />
           </div>
 
-          <div className="bg-white mx-6 mb-6 rounded-xl border border-slate-100 shadow-sm flex flex-col flex-1 min-h-0 overflow-visible relative">
+          <div className="bg-white mx-4 sm:mx-6 mb-6 rounded-xl border border-slate-100 shadow-sm flex flex-col flex-1 min-h-0 relative">
             
             <div className="flex flex-col border-b border-slate-100/50">
-              <div className="flex px-6 pt-4 gap-1">
+              <div className="flex px-4 sm:px-6 pt-4 gap-1">
                 <button 
                   onClick={() => setActiveTab("today")}
-                  className={`px-6 py-2 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "today" ? 'bg-slate-50 text-violet-600 border-x border-t border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                  className={`px-5 sm:px-6 py-2 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "today" ? 'bg-slate-50 text-violet-600 border-x border-t border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
                 >
                   Today
                 </button>
                 <button 
                   onClick={() => setActiveTab("history")}
-                  className={`px-6 py-2 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "history" ? 'bg-slate-50 text-violet-600 border-x border-t border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                  className={`px-5 sm:px-6 py-2 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "history" ? 'bg-slate-50 text-violet-600 border-x border-t border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
                 >
                   History
                 </button>
               </div>
 
-              <div className="flex items-center justify-between px-6 py-4 bg-slate-50/50">
-                <div className="flex items-center gap-4 flex-1">
-                  <h3 className="text-lg font-bold text-slate-800 tracking-tight whitespace-nowrap">Inventory Details</h3>
-                  <div className="relative w-48 md:w-64 group">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 bg-slate-50/50">
+                <div className="flex flex-wrap items-center gap-3 min-w-0">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight whitespace-nowrap">Inventory Details</h3>
+                  <div className="relative w-40 sm:w-52 md:w-60 group">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 group-focus-within:text-violet-500 transition-colors" />
                     <input
                       type="text"
@@ -425,13 +425,13 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 p-1.5 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <div className="flex flex-wrap items-center gap-1.5 p-1 bg-white border border-slate-200 rounded-2xl shadow-sm max-w-full">
                     <select
                       value={filterName}
                       onChange={(e) => setFilterName(e.target.value)}
-                      className="h-8 pl-2 pr-8 bg-slate-50 border border-transparent rounded-xl text-[9.5px] font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer min-w-[100px]"
-                      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '12px' }}
+                      className="h-8 pl-2 pr-7 bg-slate-50 border border-transparent rounded-xl text-[9.5px] font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer max-w-[120px]"
+                      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
                     >
                       <option value="">All Items</option>
                       {nameOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -442,8 +442,8 @@ export default function Dashboard() {
                         <select
                           value={filterType}
                           onChange={(e) => setFilterType(e.target.value)}
-                          className="h-8 pl-2 pr-8 bg-slate-50 border border-transparent rounded-xl text-[9.5px] font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer min-w-[90px]"
-                          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '12px' }}
+                          className="h-8 pl-2 pr-7 bg-slate-50 border border-transparent rounded-xl text-[9.5px] font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer max-w-[110px]"
+                          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
                         >
                           <option value="">All Types</option>
                           {typeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -452,8 +452,8 @@ export default function Dashboard() {
                         <select
                           value={filterDept}
                           onChange={(e) => setFilterDept(e.target.value)}
-                          className="h-8 pl-2 pr-8 bg-slate-50 border border-transparent rounded-xl text-[9.5px] font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer min-w-[100px]"
-                          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '12px' }}
+                          className="h-8 pl-2 pr-7 bg-slate-50 border border-transparent rounded-xl text-[9.5px] font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer max-w-[110px]"
+                          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
                         >
                           <option value="">All Dept</option>
                           {deptOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -462,7 +462,7 @@ export default function Dashboard() {
                     )}
 
                     {activeTab === "history" && (
-                      <div className="flex items-center gap-1 ml-1 pl-2 border-l border-slate-100">
+                      <div className="flex flex-wrap items-center gap-1 ml-1 pl-2 border-l border-slate-100">
                         <div className="relative">
                           <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 h-2.5 w-2.5 text-slate-400" />
                           <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-7 pl-6 pr-1 bg-slate-50 border border-transparent rounded-lg text-[9px] font-bold text-slate-600 cursor-pointer" />
@@ -492,7 +492,7 @@ export default function Dashboard() {
                     <button
                       onClick={handleExportPDF}
                       disabled={isExporting || filteredData.length === 0}
-                      className="h-9 px-4 rounded-xl border flex items-center gap-2 text-[10px] font-black tracking-widest transition-all bg-white text-slate-500 border-slate-200 hover:border-violet-300 hover:text-violet-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-slate-200 disabled:hover:text-slate-500"
+                      className="h-9 px-3 sm:px-4 rounded-xl border flex items-center gap-2 text-[10px] font-black tracking-widest transition-all bg-white text-slate-500 border-slate-200 hover:border-violet-300 hover:text-violet-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-slate-200 disabled:hover:text-slate-500 whitespace-nowrap"
                     >
                       {isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
                       <span>{isExporting ? "EXPORTING..." : "EXPORT PDF"}</span>
@@ -502,7 +502,7 @@ export default function Dashboard() {
                   <div className="relative">
                     <button
                       onClick={() => setIsColMenuOpen(!isColMenuOpen)}
-                      className={`h-9 px-4 rounded-xl border flex items-center gap-2 text-[10px] font-black tracking-widest transition-all ${isColMenuOpen ? 'bg-violet-600 text-white border-violet-600 shadow-lg' : 'bg-white text-slate-500 border-slate-200 hover:border-violet-300'}`}
+                      className={`h-9 px-3 sm:px-4 rounded-xl border flex items-center gap-2 text-[10px] font-black tracking-widest transition-all whitespace-nowrap ${isColMenuOpen ? 'bg-violet-600 text-white border-violet-600 shadow-lg' : 'bg-white text-slate-500 border-slate-200 hover:border-violet-300'}`}
                     >
                       <Settings2 className="h-3.5 w-3.5" />
                       <span>COLUMNS</span>
@@ -533,8 +533,8 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto relative">
-              <table className="w-full text-center border-collapse border-separate border-spacing-0">
+            <div className="flex-1 overflow-x-auto overflow-y-auto relative custom-scrollbar">
+              <table className="w-full min-w-[850px] text-center border-collapse border-separate border-spacing-0">
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-violet-50/95 backdrop-blur-sm">
                     {columnConfig.map(col => visibleColumns[col.key] && (
