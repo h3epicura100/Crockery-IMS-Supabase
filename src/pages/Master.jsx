@@ -260,6 +260,19 @@ export default function Master() {
     fetchDropdowns();
   };
 
+  function getDisplayableImageUrl(url) {
+    if (!url || url === "No Image") return null;
+    try {
+      const directMatch = url.match(/file\/d\/([a-zA-Z0-9\-_]+)/);
+      if (directMatch && directMatch[1]) return `https://drive.google.com/thumbnail?id=${directMatch[1]}&sz=w200`;
+      const ucMatch = url.match(/[?&]id=([a-zA-Z0-9\-_]+)/);
+      if (ucMatch && ucMatch[1]) return `https://drive.google.com/thumbnail?id=${ucMatch[1]}&sz=w200`;
+      const match = url.match(/(?:id=|\/d\/)([a-zA-Z0-9\-_]{25,})/);
+      if (match && match[1]) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w200`;
+      return url;
+    } catch { return url; }
+  }
+
   return (
     <AdminLayout>
       <div className="min-h-[calc(100vh-42px)] bg-[#f0f2f8] font-sans px-8 py-6">
@@ -307,41 +320,69 @@ export default function Master() {
               <table className="w-full text-left border-collapse">
                 <thead className="sticky top-0 bg-violet-50 z-10">
                   <tr>
-                    {["Item Name", "Type", "Department", "Unit", "Rental Price", "Damage Price", ""].map(h => (
+                    {["Image", "Item Name", "Type", "Department", "Unit", "Rental Price", "Damage Price", ""].map(h => (
                       <th key={h} className="px-6 py-3 text-[10px] font-bold text-violet-600 uppercase tracking-widest border-b border-violet-100">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {itemsLoading ? (
-                    <tr><td colSpan={7} className="px-6 py-16 text-center text-slate-400 text-xs font-bold uppercase">Loading…</td></tr>
+                    <tr><td colSpan={8} className="px-6 py-16 text-center text-slate-400 text-xs font-bold uppercase">Loading…</td></tr>
                   ) : filteredItems.length === 0 ? (
-                    <tr><td colSpan={7} className="px-6 py-16 text-center text-slate-400 text-xs font-bold uppercase">No items found</td></tr>
+                    <tr><td colSpan={8} className="px-6 py-16 text-center text-slate-400 text-xs font-bold uppercase">No items found</td></tr>
                   ) : (
-                    filteredItems.map(item => (
-                      <tr key={item.id} className="hover:bg-slate-50/50">
-                        <td className="px-6 py-3 text-xs font-bold text-slate-900">{item.item_name}</td>
-                        <td className="px-6 py-3 text-xs text-slate-600">{item.inventory_type || "-"}</td>
-                        <td className="px-6 py-3 text-xs text-slate-600">{item.department || "-"}</td>
-                        <td className="px-6 py-3 text-xs text-slate-600">{item.unit || "-"}</td>
-                        <td className="px-6 py-3 text-xs text-slate-600">₹{Number(item.rental_price).toLocaleString("en-IN")}</td>
-                        <td className="px-6 py-3 text-xs text-slate-600">₹{Number(item.damage_price).toLocaleString("en-IN")}</td>
-                        <td className="px-6 py-3">
-                          <div className="flex items-center gap-1 justify-end">
-                            <button onClick={() => openEditItem(item)} className="p-2 rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-all">
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteItem(item)}
-                              disabled={deletingItemId === item.id}
-                              className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-40"
-                            >
-                              {deletingItemId === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                    filteredItems.map(item => {
+                      const displayImgUrl = getDisplayableImageUrl(item.image_url);
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-50/50">
+                          <td className="px-6 py-2.5">
+                            {displayImgUrl ? (
+                              <a
+                                href={item.image_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Click to view full image"
+                                className="block h-10 w-10 shrink-0"
+                              >
+                                <img
+                                  src={displayImgUrl}
+                                  alt={item.item_name}
+                                  className="h-10 w-10 object-cover rounded-lg border border-slate-200 bg-slate-50 hover:opacity-80 transition-opacity shadow-sm"
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.parentNode.innerHTML = `<div class="h-10 w-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-300"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg></div>`;
+                                  }}
+                                />
+                              </a>
+                            ) : (
+                              <div className="h-10 w-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-300">
+                                <Package className="h-4 w-4" />
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-3 text-xs font-bold text-slate-900">{item.item_name}</td>
+                          <td className="px-6 py-3 text-xs text-slate-600">{item.inventory_type || "-"}</td>
+                          <td className="px-6 py-3 text-xs text-slate-600">{item.department || "-"}</td>
+                          <td className="px-6 py-3 text-xs text-slate-600">{item.unit || "-"}</td>
+                          <td className="px-6 py-3 text-xs text-slate-600">₹{Number(item.rental_price).toLocaleString("en-IN")}</td>
+                          <td className="px-6 py-3 text-xs text-slate-600">₹{Number(item.damage_price).toLocaleString("en-IN")}</td>
+                          <td className="px-6 py-3">
+                            <div className="flex items-center gap-1 justify-end">
+                              <button onClick={() => openEditItem(item)} className="p-2 rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-all">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteItem(item)}
+                                disabled={deletingItemId === item.id}
+                                className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-40"
+                              >
+                                {deletingItemId === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

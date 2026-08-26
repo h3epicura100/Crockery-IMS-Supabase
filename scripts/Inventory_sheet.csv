@@ -1,0 +1,266 @@
+Serial No,Inventory No,Inventory Type,Department,Items Name,Total Purchased,Opening Balance,Closing Balance,Total Balance,Total Issue,Total Return,Total Damage,Total Missing,Image
+1,IN-Glass-001,Glass,Jaar,100 ML,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1A0FbZmqOalIOwiTqMibSHB2_QzVosV-C
+2,IN-Glass-001,Glass,Jaar,120 ML,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=18c1dSeA95t5XN2D3kdPBM6l-HTqPWHIN
+3,IN-Kullhad-001,Kullhad,KULLHAD,15- NO,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1a_MplKYdAdFkSJ0a5lduYIprQ-Ek3dyT
+4,IN-Glass-001,Glass,Jaar,150 ml,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1xPifCYmRIrlDOz7nzG6kEGSsUDbkV0VO
+5,IN-Kullhad-001,Kullhad,KULLHAD,24 NO,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1bQlqLipsiNMZ0jb8HPlBsXXqHhIrtDEF
+6,IN-Kullhad-001,Kullhad,KULLHAD,25-NO,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=17FrUmUbbqx2lPWi8OjBV9dNEQbmy8EMA
+7,IN-Kullhad-001,Kullhad,KULLHAD,26-NO,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1Ou_C35zKVGCr9RjdSMIOIPl77vsdVN2H
+8,IN-Kullhad-001,Kullhad,KULLHAD,27 NO,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1weA5wadC3BdU8pG3fRXZ2SF5d0yjK0bh
+9,IN-Kullhad-001,Kullhad,KULLHAD,28 NO,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1BXfnKknoz0NkYUtVGBaXLMYxajBY3W30
+10,IN-Kullhad-001,Kullhad,KULLHAD,30 No,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1dDUOYMOQ222EW0DvPWb4mOKpG9_gBwLO
+11,IN-Kullhad-001,Kullhad,KULLHAD,32 NO,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1wLFvxoFpk7THQiWPDqIXiqNVPP9gqNXr
+12,IN-Kullhad-001,Kullhad,KULLHAD,33-NO,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1Tu8pcqThgDuRsFo8zxtSoh9TkaQCnHDA
+13,IN-Disposal-001,Disposal,Dispo Cutlery,4* plate,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1lxQi8KfgPGgUIFYQeyd_Y6m5pDjSChNV
+14,IN-Disposal-001,Disposal,Dispo Cutlery,4* Sqare Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1CphJfG8pW2WI7i4u1eDNbj7DbPU1zI98
+15,IN-Disposal-001,Disposal,Dispo Cutlery,6* Round Plate,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1GQurMBNogeKgEt_jr7_gC30xeQxpApyj
+16,IN-Disposal-001,Disposal,Dispo Cutlery,6* Square Plate,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=18hDPNOs5OvOhFFZ2C2m7Unb6EcC0LNga
+17,IN-Disposal-001,Disposal,Dispo Cutlery,8* Square Plate,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1UV2MOdwFkSLMtbzDPIIMszBgEqpkCmkw
+18,IN-Kullhad-001,Kullhad,KULLHAD,9 NO,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1MhTdwUk0Uda4S4pKz0XnHVKQrsylZX5o
+19,IN-Decor-001,Decor,Stand,Aluminium Silver Tag Stand,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1rWLHW4N1yMcYJF6xkTIrm6wULSyraQnB
+20,IN-Crockery-001,Crockery,ASTER,Aster-M,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=13DTm6bhGeYuYky4A1tXLSQjtC73C1Qi4
+21,IN-Crockery-001,Crockery,ASTER,Aster-P,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=12rg1mdxrSrno-uSRyjmuarg7VxLqFlHr
+22,IN-Crockery-001,Crockery,Bluseh Blue,B-1,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1OfpAUOVCB6z-j9pqp5B37SFfb1UDTR92
+23,IN-Decor-001,Decor,Counter,B-1 big,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1-DSc9JDas_WojwZ7Kj6pX5w7QiVkgIWa
+24,IN-Crockery-001,Crockery,Bluseh Blue,B-2,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1lHEtCfBDUcemEjZNRMti6pGyhZmaRgfg
+25,IN-Crockery-001,Crockery,Bluseh Blue,B-3,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1GI2f-vpxEGCOCwKcyBFp3KJopmPfh3iN
+26,IN-Crockery-001,Crockery,Bluseh Blue,B-4,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1dErYseOem7oeP4Mh4MPa9mScJe4RC7ka
+27,IN-Decor-001,Decor,TRAY,Barbecue Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1XE9ovtVL0IYRds2Z_31UFGT73JJDPznf
+28,IN-Decor-001,Decor,TRAY,Barbeque Big Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1htK8dsOY2z11H8NmxjJIONUdYBqwZ7_g
+29,IN-Decor-001,Decor,Lamp,Bettery Lamp Big,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1fJHewpSrmRwUSwLxMikULq7w91CPFj02
+30,IN-Decor-001,Decor,Lamp,Bettery Lamp Medium,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=129VLIaq2EPNoJjOzx5dg_uPeJx7oZqST
+31,IN-Decor-001,Decor,Lamp,Bettery Lamp Small,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1wZEBHP2wKGA9gK73SQNwJ0iAlM8TPcie
+32,IN-Disposal-001,Disposal,Bamboo,Big Boat,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1YiiddvvmVgBI2AstqanvH4Fpv2HgPrzY
+33,IN-Disposal-001,Disposal,Dispo Cutlery,Big Cone,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1bNHf68x1G236evtTkGldJ4RvlhiNomcs
+34,IN-Disposal-001,Disposal,Bamboo,BIG DONA,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=19CKzh4PGJOiBohMxH5yS1ncYZzrrW_EW
+35,IN-Decor-001,Decor,TRAY,Big Golden Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1KhP9Iw4VMyhznQumNqNgdV_BPiF3w7A-
+36,IN-Disposal-001,Disposal,Bamboo,Big Gun Toothpick,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1wW8l-xEIfZZOyIfj0ovAHJ_wmqMyeXvD
+37,IN-Kullhad-001,Kullhad,KULLHAD,Big Handi,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1PdJZxL3LPbZBVrcp5NUbjTKE7Va12hbk
+38,IN-Kullhad-001,Kullhad,KULLHAD,Big kulhhad,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1YjAjJ8Qe5s_23I4Wj71g18kuAgNu-yY-
+39,INV-1786695153889,Decor,Pot,Big Pot Golden,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=12L32U_JIv5b8g14gjFvb0Eu5hVyEoTXi
+40,IN-Decor-001,Decor,Bowl,Black & White Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1dikx6G7ZqB98RxPLQJ3PD0m5H8lVvseN
+41,IN-Decor-001,Decor,Bowl,Black Big Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=15aq-OYNNSqoVjbaCNevEF-eVcUpChSdU
+42,IN-Decor-001,Decor,Stand,Black Candle Stand,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1kmmZ2-i9c6cxbgej7Aauls4t7EpwKM6w
+43,IN-Decor-001,Decor,Bowl,Black Golden BIg bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1Bcll9jCqZw_Y4tDBMK6IoNvytlnIbFkG
+44,IN-Decor-001,Decor,Lamp,Black Horse Lamp,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1lMCcikTlzPZERg8Gj-nBEirmUR7mT2MA
+45,IN-Decor-001,Decor,Lamp,Black Lamp,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1yov2FYM-tqP7BPTvqNMV7iMLZJTewanY
+46,IN-Decor-001,Decor,TRAY,Black Round Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1FX46XhCNeuxQnvSe948u1J8J52sMBAh4
+47,IN-Decor-001,Decor,Bowl,Black Small Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1NgbIkQugjR3XnVZNHvpsM3akw0icTH5q
+48,IN-Decor-001,Decor,TRAY,Black Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1D5sOljG0DaGwWa8jNqM1T87z5JdrUjMS
+49,IN-Decor-001,Decor,Bowl,Black Wooden Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1E5nf83IzMXBN80H1vQ6vuPnivRxvrY7i
+50,IN-Decor-001,Decor,Bowl,Blue White Flower,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1WE6vohy2t_1VTKJJGiOHMZYGYfBQTGgn
+51,IN-Crockery-001,Crockery,Dinner Set,Bonechina Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1XalpC9jFe9zx9xmqGKFPWacv6N2MMMg2
+52,IN-Decor-001,Decor,Photo Box,Box Photo Small,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1bSt5s1kBzrQW0h9yfG9kxoQXF9XB1TQZ
+53,IN-Decor-001,Decor,Lamp,Charging Lamp,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1if_hQwg-6dhtns9UuYHClkBfgBJU6m15
+54,IN-Decor-001,Decor,WOODEN,Charlie Stand,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1-t-NGu_xSIer_UVze6wryY_F_ZCH6q6c
+55,IN-Decor-001,Decor,Meeter,Cheese Meeter,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1gzD_z_ZW4cBWaPNIygNHJJwhVfbAYyOU
+56,IN-Decor-001,Decor,Lamp,Chinese Lamp,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1XTcqVNXfnI-VhRIvk29_8Ly4G6jyTnpH
+57,IN-Decor-001,Decor,Bowl,Chinni Mitti Blue Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1LA0LLrXxcMLCqqsjMBMgy2wye0_jmXAs
+58,IN-Decor-001,Decor,Bowl,Chinni Mitti Important,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1jjmaZiRyuXlvOa8uX_qinf0bvZ9OF7cx
+59,IN-Decor-001,Decor,Fountain,Chocolate Fountain,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1wLVIlEWaCZwISuOTfO73QBcjDrObsM_m
+60,IN-Decor-001,Decor,Spoons,Chutney Spoon,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1ZMDjxRxvYsVPQCLjbrm8s-HW_bLxpEt4
+61,IN-Disposal-001,Disposal,Extra For Staff,Cofee Glass,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1JS2m5QGWDE4DnYutfMKlvkA9FWpv3Xeb
+62,IN-Disposal-001,Disposal,Dispo Cutlery,Combo Fork,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1KR11IAUzflB_MN4OX2UOKcnVMcflJmsA
+63,IN-Decor-001,Decor,TRAY,Copper Round Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1CmOucNiMvysJeoZq1_Hi2cmjASQdCaEo
+64,IN-Decor-001,Decor,Spoons,Copper Spoon,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1NEh8JGSAyyiYwcd0-4pmkSyP6s-ZSmJ1
+65,IN-Decor-001,Decor,TRAY,Copper Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1AgorTERt0IKb0UuOzYacn4l5rMAHipgZ
+66,IN-Crockery-001,Crockery,American Dana,CS-021 AD,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1sUk4Um0EbpZ2YQ92iyFog7y5_NU3Uhq1
+67,IN-Crockery-001,Crockery,American Dana,CS-04,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1qdXIPZf9g0QS8ESjXxveGy9i_dmskZjY
+68,IN-Decor-001,Decor,Counter,CS-047,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1HaVVrTq9ElDqxs-Vz4M6XSgDcp3Ih5LL
+69,IN-Decor-001,Decor,Counter,CS-048,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=146DwuOZcPEG1xuLBwFXO-9PNPL7GjFqi
+70,IN-Crockery-001,Crockery,American Dana,CS-05,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=14eWcheUxKQL97qaCk8gWrOxIzbf-EPfW
+71,IN-Crockery-001,Crockery,American Dana,CS-13,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1lnLULMF5w9wj3RtP6yJ9Q3tMBA8XcG-9
+72,IN-Crockery-001,Crockery,American Dana,CS-22,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=18a96Wk-wzkMf0nFMrwigR3lVqD1CN39F
+73,IN-Crockery-001,Crockery,American Dana,CS-43,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=17ytbkJAdFdysjgaDjWVrlkmPQMcqvxL5
+74,IN-Crockery-001,Crockery,American Dana,CS-44,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1acbf7tO1MvmsotcYo3X2Paf2mHtTx8e4
+75,IN-Crockery-001,Crockery,American Dana,CS-45,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1uZVlxHBf7j8Z9RWARbe7L4Kl5mlQLMrX
+76,IN-Crockery-001,Crockery,American Dana,CS0-16 AD,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1dNI9_BHSh95CTtA7oP0R9KSai71eBP1H
+77,IN-Crockery-001,Crockery,American Dana,CS00-33A  AD,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1sii8oNFO1DyleCbpf-pgJQ5ln3Xm7all
+78,IN-Crockery-001,Crockery,American Dana,CSRP-20,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1hbpS2jKH7LjntYxp2SXMfhfz1dVIkDVk
+79,IN-Crockery-001,Crockery,American Dana,CSRP-21,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1ftyx0DOADsFJ16fF1B7nHC_WsfbUTjxs
+80,IN-Decor-001,Decor,Lamp,Cup Lamp,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1oqlm41wqO3WV6LqkMJJ4lcm90zX8YflF
+81,IN-Decor-001,Decor,Spoons,Daal Spoon,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1hb1irFz04nRuKIpAwR18ADCtMhpYQ36m
+82,IN-Decor-001,Decor,Bowl,Deep Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1BUWNhWWhJSkm7NSczfwXJIJE73CFK01z
+83,IN-Decor-001,Decor,Bowl,Deep Plater Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1nul0h1yZC07rhm789_oaLHo4BpayjJtz
+84,IN-Disposal-001,Disposal,Dispo Cutlery,Dessert Spoon,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1NPE4TytObo1kWR0Q1vtKACYTVg0-wogp
+85,IN-Crockery-001,Crockery,Dinner Set,DINNER PLATE,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1rtnFKEm1c3BY2a5HHAmsOD04UmSx7WlD
+86,IN-Crockery-001,Crockery,Dinner Set,DINNER SPOON,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1kuF0Ezj8xA0E1A9y0trYy78rnhhU1EZl
+87,IN-Decor-001,Decor,Bowl,Dipp Bowl Black,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1x8WoLXrHvPPD49MkIfZm6nIlJo5N9nNQ
+88,IN-Decor-001,Decor,Plastic,Dispenser,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1jkopDaWdQzPcBAvIDfWJUbEV0egD0CHB
+89,IN-Disposal-001,Disposal,Bamboo,Dona Pattal,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1Lo0XSrYpBDWsRnrXC6iA-_sQrQt5xNEb
+90,IN-Decor-001,Decor,WOODEN,Double bhatti Cover,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1sHjPumxdBVGICjsTeS1cL8TUqBhlc2Um
+91,IN-Decor-001,Decor,Lamp,Elephent Lamp,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1-Vmwd_gWf4bjzAz63M0VPwZ8jOUl1qJh
+92,IN-Decor-001,Decor,Counter,FA-1,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1wY04p1HknawcJC7Xx9fU-pfEzxc2kdj6
+93,IN-Decor-001,Decor,Counter,FA-2,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1Wq-mpO9-bSAusTfYbbzU1jBLEP-RavQX
+94,IN-Decor-001,Decor,Counter,FA-3,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1V78PAz7plk3BYNxyVqRv_BBvM6G_J8ep
+95,IN-Decor-001,Decor,Counter,FA-4,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1WgiolxX1ZLJlAx8IdwLNHHWnbPacPonW
+96,IN-Decor-001,Decor,Counter,FB-5,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1YzidLt8vbdU8tOj7dMVaUOv4dbcS1pVb
+97,IN-Decor-001,Decor,Counter,FB-6,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1IqCwUSymCkSk84yHgY6FLVDM_vS2lisS
+98,IN-Decor-001,Decor,Counter,FB-7,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1O1Mp1BLDEMRZNhHN-NrYdAsAfTgwxVMr
+99,IN-Decor-001,Decor,Counter,FB-8,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1yMgXLouk7XKrwl_ysftX8NGhR-k0Igcz
+100,IN-Decor-001,Decor,Counter,Fl-2,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1aCRhlbq8I3MvM_UccBODArbTOrpJYkLE
+101,IN-Decor-001,Decor,Counter,Fl-4,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1JwzWyTVZt6pPnhdlN3gsSVs5km0_GClv
+102,IN-Decor-001,Decor,Counter,FL-6,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1mY5qbjaOdaYgX0LHkXOP7bzodAleNV5T
+103,IN-Decor-001,Decor,Tong,Flate Tong,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1rEp3BaLFE5md_2VDxyft3DTZPbLVM_Go
+104,IN-Disposal-001,Disposal,Dispo Cutlery,Fruit Fork,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1UulV7IUb4sQ5F4tLBIvGIwWBnnK8iH3x
+105,IN-Decor-001,Decor,Tong,Fruit Tong,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1WHXsEw8TDio_XGYF2tTPGpNgvVXWtwKI
+106,IN-Crockery-001,Crockery,Green line,Gl Big,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1xxmvbzvlzsvpy7e9qrFJoWLle0nciL6M
+107,IN-Crockery-001,Crockery,Green line,Gl Cup,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1WXRsTxo3Lu_B_f1J74SN7cuPJJK-gV6M
+108,IN-Crockery-001,Crockery,Green line,Gl Small,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1vACK3bg00a6YuyTwbK2Uv6LtOfsZS7bR
+109,IN-Crockery-001,Crockery,Green line,GL-2,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1MR7R3Oy7OXtTdmUzeZbcLLu0ukh_F6JY
+110,IN-Decor-001,Decor,Mug,Glass by rahul,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1VD8OX2x5_89gxF5M9tWAJYoL_Xd-Feu2
+111,IN-Decor-001,Decor,Golden,Golden Banana Leaf,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=13MidMGqCxrnyvwM8Xmpm3LNWvcDSZfiC
+112,IN-Decor-001,Decor,Bowl,Golden Big Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1QvN2B79uWAxFYnajZveLK4u7O_5-0bsa
+113,IN-Decor-001,Decor,Stand,Golden Candle Lamp,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1VZZFzGaa3COuFilP29ldqQ6hGLtOgxev
+114,IN-Decor-001,Decor,Bowl,Golden Deep Bowl BIG,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1J5CY80P4hucpDvv3OeYHxEFG_l2daNJK
+115,IN-Decor-001,Decor,Golden,Golden Jaali 2,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1HaQ-hheJRdJmjUmluXnwkxkv9MIQFU0_
+116,IN-Decor-001,Decor,ACRYLIC,Golden Kadhai,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1YputZe_pCZOLE_zwigJFL3oxzqqhdmAD
+117,IN-Decor-001,Decor,Lamp,Golden Lamp,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1tCR14KJn1EtssftUje8x4WiOniM6xFn5
+118,IN-Decor-001,Decor,Lamp,Golden Lamp-2,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1nxFppiU37oZ5GaAW5qIP-GlABKZqps3D
+119,IN-Decor-001,Decor,Bowl,Golden New Small Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1iHDUZxfaXzGd4LaX9Ts_1ix9gFhW0V5R
+120,IN-Decor-001,Decor,Pot,Golden Pot Big,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1456Zigoc2Dba8qSUeVM4DK_C25VBxnaR
+121,IN-Decor-001,Decor,Pot,Golden Pot-2,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1dBHJC-lXfABUUBse5gKTrxPhlZlsr8ZY
+122,IN-Decor-001,Decor,TRAY,Golden Silver Servise Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=13ZX14x-obc6Ph8ejzdyYGZLr6EZm5WKb
+123,IN-Decor-001,Decor,Golden,Golden Small Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1TlFgyhYcGIpYQ5BEem-08CrRNt6O_vJJ
+124,IN-Decor-001,Decor,Stand,Golden Tissue Stand,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=165SFxTa2OyYKsHgXv5vp63VygGcPz_pL
+125,IN-Decor-001,Decor,TRAY,Golden Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1WejMAJ2qTKYPCjyb2FK6E9kyhK9Eq92k
+126,IN-Decor-001,Decor,Bowl,Golden Tray Small,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1v4TDBkLOkD5V_PQmP9fAe3J6Y7JkwuJK
+127,IN-Decor-001,Decor,TRAY,Gray Round Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1juWTIM5uqsM7QUjDDijYKFfqPAHQ5P82
+128,IN-Decor-001,Decor,Bowl,Green Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1tOlZfGx9VqQlm__qQTDsHJEm1YzZd8fP
+129,IN-Decor-001,Decor,WOODEN,H3 Board,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1ee_pJ2ERWD0alaQJbCgTOj14NiBevcWC
+130,IN-Disposal-001,Disposal,Bamboo,H3 Toothpick,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1zyweJ2TxsZImz-3rb0skm3c3VxHXRtG4
+131,IN-Decor-001,Decor,WOODEN,Induction Cover,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1h9drC6W0HBRea6cP4x6ctMIdXAtsGqqL
+132,IN-Decor-001,Decor,Glass,Iron Glass Brass,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1y3szn0P34lK1NFswxDE8ZsEHxgMIfBxY
+133,IN-Decor-001,Decor,WOODEN,Jhalmuri Tong,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1cyoHrWWBvcNFNyBsMzGKOq7Z0EDETLqx
+134,IN-Kullhad-001,Kullhad,KULLHAD,k-1,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1KAf_os4X4MGKfnJN1R8YyxBpKVOVuQCW
+135,IN-Kullhad-001,Kullhad,KULLHAD,k-2,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1FKOvX6NV80prND_LA0YGPLaII7zSF03B
+136,IN-Kullhad-001,Kullhad,KULLHAD,k-3,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1QdISDtuEIW_I1wD5sfC9n6nvTuMVvI1j
+137,IN-Kullhad-001,Kullhad,KULLHAD,k-4,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1p0i1iSN9Qo8TO0Z1CDmkffrRqLG2tLF3
+138,IN-Kullhad-001,Kullhad,KULLHAD,k-5,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1DC8XzSo8QicCkcXNhOL4cZXhn5o0pnCe
+139,IN-Kullhad-001,Kullhad,KULLHAD,k-6,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1r3iNmFUOF3262zc2Ma1N-iv5YQUVv4gh
+140,IN-Decor-001,Decor,Kansa,Kansa Pot,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1D-wXbRGL1RMMH_zDOP775EUceE3wASWl
+141,IN-Decor-001,Decor,Lamp,Laalteen,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1P6AO65cjfjwcZVhN1y-UFpKKJ-sMImv2
+142,IN-Glass-001,Glass,Jaar,Line Glass,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1TSR5CjCXYATu_LUPckSFaxH46DZgIurz
+143,IN-Decor-001,Decor,Bowl,Loha Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1PW4WYxZpQ5--C_3nxPDS1a_7MrzkVdGn
+144,IN-Disposal-001,Disposal,Bamboo,M/BOAT,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1-iFCIh_F58A_qQXWFfPPrlumR_wMafyQ
+145,IN-Glass-001,Glass,GLASS,MARTINI GLASS,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1O7hDaNvCW-ElEcdD2rJzuhebMDK-ol1v
+146,IN-Crockery-001,Crockery,Green Glossy GG,MB-0044,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1Pmi9pYybCWaGpxd53huIo2ID2kczSeZK
+147,IN-Crockery-001,Crockery,Green Glossy GG,MB-0045,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1SDh5nXDPyv2S-woeVB5sGQx7dFfqzTPX
+148,IN-Crockery-001,Crockery,Green Glossy GG,MB-0048,0,0,0,0,0,0,0,0,No Image
+149,IN-Crockery-001,Crockery,Green Glossy GG,MB-1 GG,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=198SffYkKzhlsCW0JacrANXg3X7xQIfO7
+150,IN-Crockery-001,Crockery,Green Glossy GG,MB-10A GG,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1H_gvf8UmKB2ZdwT1RWTBD4CCZ9ZfnZPD
+151,IN-Crockery-001,Crockery,Green Glossy GG,MB-10B,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1XIiPuxUptulGkwLhkKsHDTuiy3FnXXrv
+152,IN-Crockery-001,Crockery,Green Glossy GG,MB-11 GG,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=11365bcBRkn2R1_jUnkSCysUEnFxTLRua
+153,IN-Crockery-001,Crockery,Green Glossy GG,MB-13,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1ehUnwEBi9nJN9hAcceBtuVmyst7hN_Vh
+154,IN-Crockery-001,Crockery,Green Glossy GG,MB-14 GG,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1Sip9r8-cKqmimNxpZBp2bW5BWKIG87Tj
+155,IN-Crockery-001,Crockery,Green Glossy GG,MB-21 GG,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1mD_3la3WfPt1Y3nL0Jolqe6dHnUcoBQ6
+156,IN-Crockery-001,Crockery,Green Glossy GG,MB-33,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1tRFyanaxxIT8FlKZ_BGZCLJXGfx0E9oP
+157,IN-Crockery-001,Crockery,Green Glossy GG,MB-44,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1kI-MnpnXW3EskPUyAeC1qG7Kru3qbKGs
+158,IN-Crockery-001,Crockery,Green Glossy GG,MB-5 GG,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1ypXJyGYRpHASx33tGQET7z3OuT9EuBol
+159,IN-Crockery-001,Crockery,Green Glossy GG,MB-8B,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1RFFXuqCbKt3_PZR782E8n9oQPuxjcnOt
+160,IN-Crockery-001,Crockery,Green Glossy GG,MB-8D GG,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1wygg74fBCh70gF0A6CVQDaAaAEAerDbP
+161,IN-Crockery-001,Crockery,Green Glossy GG,MB-9 GG,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1wQQ5mwsLd8W2hfRRyiavxf0Joqn-iTqG
+162,IN-Decor-001,Decor,Counter,MB0047,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1t5zr0J2jN87quWkzWZrCsmdrwO8Z3T4n
+163,IN-Decor-001,Decor,Counter,MB0048,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1IEwPywGmKENeIF0l8x4ok8FE0ErZ_Agy
+164,IN-Decor-001,Decor,Counter,MBP-29,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1n88OE7g3A6fUoResBEx6dpzYE9jdzPxR
+165,IN-Decor-001,Decor,Counter,MBP-30,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1VtjCQjU81dbhuMM8xblYQHdZUqFZyMpG
+166,IN-Decor-001,Decor,Counter,MBP-31,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=11BV_kwezlaf1D0gugMPOoTdw6wpwQPZA
+167,IN-Crockery-001,Crockery,Green Glossy GG,MBP-4,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1SSTHvBZL-734X1ACuK4v6t7gaDThJHre
+168,IN-Crockery-001,Crockery,Green Glossy GG,MBRP-20,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1gQ7KITuhwMC9dSbKUTM-FL0XlAwFrUG3
+169,IN-Crockery-001,Crockery,Green Glossy GG,MBRP-21,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=17hXwk4QwBzXL3PZFsuJo4KGFwcr8OoIO
+170,IN-Disposal-001,Disposal,Dispo Cutlery,Medium Cone,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=17EqFA82947jfJxaoRu3J9FjZ_dXHLe4l
+171,IN-Crockery-001,Crockery,Dinner Set,MONKEY BOWL,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1-8W_j79GOWRXpU1QVDua_FLceGWmP_1f
+172,IN-Decor-001,Decor,WOODEN,Name Tag Stand Big,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1moyW6UObWm3QVku45OCtgY29nrWVZBkh
+173,IN-Decor-001,Decor,WOODEN,Name Tag Stand Small,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=10ADP4fYXoSksjA9TD5x_bFj5vXzaYkrg
+174,IN-Disposal-001,Disposal,Bamboo,Nav Boat,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1b-EsMInJlnKoy7jw2ah6anMxezxIgr9P
+175,IN-Decor-001,Decor,Bowl,New Big Goldeb Square Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1coWcVD73GE5ygR3NStxRf_COLVzDbLAy
+176,IN-Decor-001,Decor,Bowl,New Deep Plater Stand Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1Mp_PRZzPxZRRRn-9V7ne-4SDx9OnWSH5
+177,IN-Decor-001,Decor,Bowl,New Small Golden Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1dhETXrZBHPifqRv_NkSJK-ptRo7vxJ4p
+178,IN-Decor-001,Decor,Bowl,New Small Golden Square Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1TlnfAaxayawGnIY6rCKaB6BIPci8NHo1
+179,IN-Decor-001,Decor,Tong,New Tong,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1guhAGEM5UpV-8XStUY8zk_GGkc-h19UH
+180,IN-Decor-001,Decor,Tong,Noodles Tong,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1Q_0zO6Bg5ANFHS8OV-t0VJmY2QxZIlwa
+181,IN-Decor-001,Decor,Bowl,Old Big Golden Chaat Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=16TxTn07fYPzQi7EGxuIM69jbAe6wkQZN
+182,IN-Decor-001,Decor,Bowl,Old Medium Golden Chaat Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1ZS-SwaMoO9J0-C1GWVSxFR_-BJYMuu43
+183,IN-Decor-001,Decor,Bowl,Old Small Golden Chaat Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1ynPIsnMVySK7BkkI7IeRVaABZAPXDtJw
+184,IN-Decor-001,Decor,Bowl,Old Small Golden Chaat Bowl 2,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1izXodEsjttiRiae_WVR_uErfFBgJeim6
+185,IN-Crockery-001,Crockery,Dinner Set,Orange Plate,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=18ZWs-C8G-zmtcYulPcILuMw00Y1DUysL
+186,IN-Glass-001,Glass,GLASS,PLAIN GLASS,0,0,0,0,0,0,0,0,No Image
+187,IN-Kullhad-001,Kullhad,KULLHAD,PP,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1OsKIdn_jUlG32qmds8_KxiIPfhd0C9ba
+188,IN-Decor-001,Decor,Bowl,Red Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1LZFes2SZEos-Lo1vomXSpCbemDhdjXmk
+189,IN-Decor-001,Decor,Spoons,Rice Spoon,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=18XreqxwoYCrmBABwiJAJS3Hzz2a5M3Go
+190,IN-Crockery-001,Crockery,Green Glossy GG,S-1,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1QHsiljKGCuiQUu02WQJACSwcRpHeUpaK
+191,IN-Decor-001,Decor,Bowl,Service Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1cdw-u6Xjdvg3ETfdTqyhQ8OUJBLQstMh
+192,IN-Decor-001,Decor,Spoons,Service Spoon,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1dN8EzP4zKrZFmSFXKGvUqptl_9ZN05Hd
+193,IN-Decor-001,Decor,Spoons,Service Spoon-2,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1_wVr8V4xqBsMUoVGVHB155GFaRpY9njh
+194,IN-Decor-001,Decor,Spoons,Service Spoon-3,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1RpALZN90E_xSxOfVs2PPDVnJBXRhidTj
+195,IN-Decor-001,Decor,Spoons,Service Spoon-4,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1fgTQcE7N7-Dgj9H7vcB12g2vyIqs6NNI
+196,IN-Decor-001,Decor,Tong,Service Tong,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1A3Box2nWkoTDE0AwUQZhrAa6pCt9GR99
+197,IN-Decor-001,Decor,Bowl,Silver Copper,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1iKGSqb4Rpb3KouO5EfennN5mKGB-eGD6
+198,IN-Decor-001,Decor,Bowl,Silver Copper Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=12PrdJL9vKc3CflQrpf49V-KzcGAQlsll
+199,IN-Decor-001,Decor,Bowl,Silver Golden Plater,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1zQoLKsH_vSXLb4q6HBVz8y_x2mOZOfjj
+200,IN-Decor-001,Decor,TRAY,Silver Golden Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=13iEHaNnei2_BkTRk8SUTwBOthjZ9Ynha
+201,IN-Decor-001,Decor,Mug,Silver Mug,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1tD8Vj2RGjy2OkDRrmNuWSET3t4f6Ifdq
+202,IN-Decor-001,Decor,Pot,Silver Pot Small,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1ZWG3KUy9GP5y9QkWyOQ438OgzSoujh20
+203,IN-Decor-001,Decor,Bowl,Silver White Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=11S3saojCkWmqD-j3BkxxaclohNXqCFBE
+204,IN-Decor-001,Decor,WOODEN,Single Bhatti Corner,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1PnqA5iL2Gmnh799Z_U9sq4gsARvuitWi
+205,IN-Disposal-001,Disposal,Bamboo,Small Bamboo Boat,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1GKK0Exp5-EjYjkfcslbF2o4S4_aZVajO
+206,IN-Disposal-001,Disposal,Dispo Cutlery,Small Cone,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1vyjBC95fmjHOZDSPXw4bgEvev6BHjgZ1
+207,IN-Decor-001,Decor,Bowl,Small Gold Silver New Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1SfMDfdi0AEGbG8FJWwOMSklmeEOreIhd
+208,IN-Decor-001,Decor,Pot,Small Golden Poat,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1XN9_aF_6rYKuhAgA_M_u9r8a19M0SK6R
+209,IN-Decor-001,Decor,Bowl,Small Golden Silver Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1cR5jMjlOwGBvKgxbjJ5NRVIOkEgBQVwg
+210,IN-Disposal-001,Disposal,Bamboo,Small Gun Toothpick,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1rb1foM30NMXlepnJWi9VDRZl298HfcWF
+211,IN-Decor-001,Decor,Bulb,Small Round Bulb,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1CQrf4H4dBTxXEPWxXqLxbXENWsGZzij_
+212,IN-Decor-001,Decor,Stand,Small Still Tissue Stand,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1Cyuf8Y_ya-lkEmx2jT1G9D1Q5DUwRPhQ
+213,IN-Decor-001,Decor,Stand,Small Tag Stand,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=16ZhahWoRf-oV_bBnd1e5afCcZn_LTYy0
+214,IN-Decor-001,Decor,Tong,Small Tong,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1r00R2dNJD-2QD5Cz4mP4nbzI_jF5ba4W
+215,IN-Disposal-001,Disposal,Bamboo,Small toothpick,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=10glQMV-wjCRTsulI0u1C0tqcO1WGGJZx
+216,IN-Decor-001,Decor,Spoons,Soup Handi Spoon,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=12_HE3QhPwtXA8j9g425hpuffbMC3cY71
+217,IN-Decor-001,Decor,TRAY,Squar Golden Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1k4kxMU29_X0vEWQCV8Kp-t19vvoT8cBX
+218,IN-Decor-001,Decor,Kadhai,Still Kadhai,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1m_BWHIwqjVLRCYhqS_HSZlNnx_3ezOD9
+219,IN-Decor-001,Decor,Stand,Still Press Small tag Stand,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=14g3beWP4NoMGYTQsdRHM995XBK-dpffQ
+220,IN-Decor-001,Decor,Stand,Still Tissue Stand,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1fJCSqDQHf0jSGP0hpJt4JF0N_-W8c19U
+221,INV-1786532837692,Decor,TRAY,Still Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1vGz2YwNmHwfKPFyyAxqMNPO1E2uMCUul
+222,IN-Decor-001,Decor,Stone,Stone Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1XQFX7ypBJwL51pGhgGRBTylqlFenEmgO
+223,IN-Decor-001,Decor,Stone,Stone Pot,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1TQY461HqxbfIoeYuv579pU3AM0cpnXgk
+224,IN-Disposal-001,Disposal,Arcylic,Straw,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1mdeugP5GQrHa_G-eoV7236az2mb8POnm
+225,IN-Kullhad-001,Kullhad,TERRACCOTA,TC-1,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1KNX2qCuUxMhXYwnqb-sLiOi3nkJPSrOp
+226,IN-Kullhad-001,Kullhad,TERRACCOTA,TC-2,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1c8atU9Qx4MV-2KLSK_ENkMIOkz9J6bxV
+227,IN-Kullhad-001,Kullhad,TERRACCOTA,TC-3,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1G1AJREZh_j_oD48N4zG-Uk2HdB_eZhEw
+228,IN-Kullhad-001,Kullhad,TERRACCOTA,TC-4,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=12eu3G0cAC9-w_7f89Q9uHJhTb38N-J8P
+229,IN-Kullhad-001,Kullhad,TERRACCOTA,TC-5,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1tiPaUyG9qyv-ZkZ4Rw9lnu0g_by9TVrK
+230,IN-Kullhad-001,Kullhad,TERRACCOTA,TC-6,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1eleA8R6UPe6Gj0KFBuW8ATqwfACx0LdU
+231,IN-Kullhad-001,Kullhad,TERRACCOTA,TC-9,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1eGhIo61uCBiZD_4SEj0IlFL7b0-Onq-L
+232,IN-Crockery-001,Crockery,Terracotta,TCG-7,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1r2FCiEFPr6aVX5Djysl7biQcojXaldcE
+233,IN-Kullhad-001,Kullhad,TERRACCOTA,TCG-8,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1Sskb7UY7RzlWJWnspUdoar7QIfsdXMw2
+234,IN-Decor-001,Decor,WOODEN,Three Tray Rack,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1l6JEgp8NSPs5BAZ-9FfPf2AxCQGw8eY7
+235,IN-Disposal-001,Disposal,Bamboo,Toothpick Big,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1vLVb1eGLN2ruYnabiWThzKACMf_vs8Ov
+236,IN-Decor-001,Decor,WOODEN,Two Self Rack With Hurts,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1cCvB8Oz0PmJMKEbisHOkvX8RQshWJWgM
+237,IN-Crockery-001,Crockery,Starter,Wh-1,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1KnVmN2Dp7A8TVEYvPKqO9pjcURtOh5RC
+238,IN-Crockery-001,Crockery,Starter,Wh-2,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=12zT9XPZx3PdP5XNfXgbTERAwssY45OpJ
+239,IN-Crockery-001,Crockery,Starter,Wh-3,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1cWUJiSKe7UF9EGntrENfFRjbSKixBHI-
+240,IN-Crockery-001,Crockery,Starter,Wh-4,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1w1gWLalSG-TUtsdfsQ23xPXoReGqbJmO
+241,IN-Crockery-001,Crockery,Starter,Wh-5,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1sqiAvvoGaQupnwaPue3oBywt5Uzjk74x
+242,IN-Decor-001,Decor,Bowl,White Big Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1nr7O3lsHmcH6SMnjmcL8rPnI5RFYWRc5
+243,IN-Decor-001,Decor,WOODEN,White Wooden Tray Large,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1pqxWNDcOHa0GkAeIB23GxDCMoUfuk7z2
+244,IN-Decor-001,Decor,WOODEN,Wodden Service Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1mF9WMc6eRllhKmc43nL_czKO_8Nl-vqM
+245,IN-Decor-001,Decor,Bowl,Wooden Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1JkcHsu8m_nmnXyStQFFhpprNakdYBzaB
+246,IN-Decor-001,Decor,WOODEN,Wooden Elephent Small,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=17Nls-B-yEiaFOWVFIIjLyOkSLT6Im9A4
+247,IN-Disposal-001,Disposal,wooden,Wooden fork,0,0,0,0,0,0,0,0,No Image
+248,IN-Decor-001,Decor,WOODEN,Wooden Four Staper,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=150BQ7cYb0LpwYObel7eSWSw_t-TvIKTd
+249,IN-Decor-001,Decor,WOODEN,Wooden Hawker Tray Small,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1N3AaOZ1Ger2qKLMuUwObuG7IPB3aO9BE
+250,IN-Decor-001,Decor,Lamp,Wooden Lamp,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1KvjPj5ndn8IdMIFee3eMmdrDS96maJd0
+251,IN-Decor-001,Decor,WOODEN,Wooden Owl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1IqCNO_Ubq0pDvYrbRQ-YKPeDG8-AETZp
+252,IN-Decor-001,Decor,WOODEN,Wooden Rack Root Foolding,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1r7QRGMtxFM9TSC6AHTuZHdEIWVm-LV-d
+253,IN-Decor-001,Decor,WOODEN,Wooden Round Riser With Inner,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=19MnIcNzwcjR6O0fkaGojaP2AZJZAnXLh
+254,IN-Decor-001,Decor,WOODEN,Wooden Sheep,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1yxBVq2BJ2ctEWRkNSWxP96BgyK4VXvhH
+255,IN-Disposal-001,Disposal,wooden,Wooden Spoon,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1ZwqImYsFlJu8FQjz4cR2z9xwxV9YCX2J
+256,IN-Decor-001,Decor,Stand,Wooden Tag Stand,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1YIkBC9Qv-qX60KWvDPZqOwhg0ZFfjbLB
+257,IN-Decor-001,Decor,TRAY,Wooden Tray,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1n4s58VJhRUFRFJE7HSplPYffHnaxADx-
+258,IN-Decor-001,Decor,WOODEN,Wooden Tray & Black Stand,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1OnB-aBaMjBj04YI7ucImX8Gxc-xpwKRS
+259,IN-Decor-001,Decor,WOODEN,Wooden Tray Big,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1QbKhvod3gUANmwV7c1f7ofKFY7sX9QfV
+260,IN-Decor-001,Decor,WOODEN,Wooden Trolly,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1pmISaEboo5EkTGJqLJicNo8Zu1emFqJR
+261,IN-Decor-001,Decor,WOODEN,Wooden Two Staper Black Stand,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1hzBD04nBF7WB0PYM2_k1hP-aGwwPPcf3
+262,IN-Decor-001,Decor,WOODEN,Wooden Two Stapper,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1IwAsL0pTYJeziAxnDqbCttLZSsnmp8tU
+263,IN-Decor-001,Decor,WOODEN,Wooden Water Stand,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1BDzWBk74Ggz8sZxsoGI8Z4dbdk6aTfdK
+264,IN-Decor-001,Decor,Riser,Wooden White RIser L/M/S,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=11RDUNmDDxZ76TB0yp4AYwZqNdNTUt_aQ
+265,IN-Decor-001,Decor,Bowl,Yellow Bowl,0,0,0,0,0,0,0,0,https://drive.google.com/uc?export=view&id=1q81qCEo0UMfA7l0p5WGVX-KADfyIPj55
