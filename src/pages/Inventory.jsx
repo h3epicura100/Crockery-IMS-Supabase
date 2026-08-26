@@ -457,19 +457,28 @@ const Inventory = () => {
           remark: { cellWidth: availableWidth - (15 + 50 + 15 + 25 + 43) }
         };
 
+        const getItemImage = (row) => {
+          if (row.imageUrl && row.imageUrl !== 'No Image') return row.imageUrl;
+          const match = items.find(i => i.id === row.itemId || i.item_name === row.itemName);
+          return match?.image_url && match.image_url !== 'No Image' ? match.image_url : null;
+        };
+
         const imageMap = {};
-        const imageList = [...new Set(rows.map(row => row.imageUrl).filter(url => url && url !== 'No Image'))];
-        const results = await Promise.all(imageList.map(async (url) => ({ url, b64: await loadImageAsBase64(url) })));
+        const imageList = [...new Set(rows.map(row => getItemImage(row)).filter(Boolean))];
+        const results = await Promise.all(imageList.map(async (url) => ({ url, b64: await loadImageAsBase64(getDisplayableImageUrl(url)) })));
         results.forEach(({ url, b64 }) => { if (b64) imageMap[url] = b64; });
 
-        const body = rows.map((row, index) => ({
-          sNo: index + 1,
-          item: row.itemName || '-',
-          qty: row.qty || '0',
-          image: row.imageUrl && row.imageUrl !== 'No Image' ? row.imageUrl : '',
-          dishes: row.dishes || '-',
-          remark: ''
-        }));
+        const body = rows.map((row, index) => {
+          const itemImg = getItemImage(row);
+          return {
+            sNo: index + 1,
+            item: row.itemName || '-',
+            qty: row.qty || '0',
+            image: itemImg || '',
+            dishes: row.dishes || '-',
+            remark: ''
+          };
+        });
 
         doc.setFontSize(16);
         doc.setTextColor(109, 40, 217);
@@ -1060,19 +1069,17 @@ const Inventory = () => {
     const commonFor = firstRow.forType;
     const commonEventDateRaw = isIssued ? firstRow.eventDate : null;
 
-    const mismatchFields = [];
-    if (filteredReportData.some(row => formatDate(row.createdAt) !== formatDate(commonDateRaw))) mismatchFields.push('Date');
-    if (filteredReportData.some(row => row.partyName !== commonParty)) mismatchFields.push('Party Name');
-    if (filteredReportData.some(row => row.forType !== commonFor)) mismatchFields.push('For');
-    if (isIssued && filteredReportData.some(row => formatDate(row.eventDate) !== formatDate(commonEventDateRaw))) mismatchFields.push('Event Date');
+    const allSameDate = filteredReportData.every(row => formatDate(row.createdAt) === formatDate(commonDateRaw));
+    const allSameParty = filteredReportData.every(row => row.partyName === commonParty);
+    const allSameFor = filteredReportData.every(row => row.forType === commonFor);
+    const allSameEventDate = isIssued && filteredReportData.every(row => formatDate(row.eventDate) === formatDate(commonEventDateRaw));
 
-    let uniformInfo = null;
-    if (mismatchFields.length > 0) {
-      const confirmPrint = window.confirm(`The data for the fields: ${mismatchFields.join(', ')} are different. Do you still want to print the PDF?`);
-      if (!confirmPrint) return;
-    } else {
-      uniformInfo = { date: commonDateRaw, party: commonParty, for: commonFor, eventDate: commonEventDateRaw };
-    }
+    const uniformInfo = {
+      date: allSameDate ? commonDateRaw : null,
+      party: allSameParty ? commonParty : null,
+      for: allSameFor ? commonFor : null,
+      eventDate: allSameEventDate ? commonEventDateRaw : null
+    };
 
     const columnsToInclude = columnConfig.filter(col => visibleColumns[col.key] !== false && col.key !== 'actions');
 
@@ -1082,20 +1089,29 @@ const Inventory = () => {
       { header: 'Remark', dataKey: 'remark' }
     ];
 
+    const getItemImage = (row) => {
+      if (row.imageUrl && row.imageUrl !== 'No Image') return row.imageUrl;
+      const match = items.find(i => i.id === row.itemId || i.item_name === row.itemName);
+      return match?.image_url && match.image_url !== 'No Image' ? match.image_url : null;
+    };
+
     const body = filteredReportData.map((row, index) => {
       const rowData = { sNo: index + 1 };
       columnsToInclude.forEach(col => {
-        let val = row[col.key === 'type' ? 'inventoryType' : col.key === 'item' ? 'itemName' : col.key === 'party' ? 'partyName' : col.key === 'for' ? 'forType' : col.key === 'serial' ? 'serial' : col.key];
         if (col.key === 'image') {
-          rowData[col.key] = val && val !== 'No Image' ? val : '';
-        } else if (['date'].includes(col.key)) {
-          rowData[col.key] = formatDate(row.createdAt);
-        } else if (['eventDate', 'returnDate'].includes(col.key)) {
-          rowData[col.key] = formatDate(val);
-        } else if (['estimatedCost', 'totalCost'].includes(col.key)) {
-          rowData[col.key] = `Rs ${parseFloat(val || 0).toFixed(2)}`;
+          const itemImg = getItemImage(row);
+          rowData[col.key] = itemImg || '';
         } else {
-          rowData[col.key] = val || '-';
+          let val = row[col.key === 'type' ? 'inventoryType' : col.key === 'item' ? 'itemName' : col.key === 'party' ? 'partyName' : col.key === 'for' ? 'forType' : col.key === 'serial' ? 'serial' : col.key];
+          if (['date'].includes(col.key)) {
+            rowData[col.key] = formatDate(row.createdAt);
+          } else if (['eventDate', 'returnDate'].includes(col.key)) {
+            rowData[col.key] = formatDate(val);
+          } else if (['estimatedCost', 'totalCost'].includes(col.key)) {
+            rowData[col.key] = `Rs ${parseFloat(val || 0).toFixed(2)}`;
+          } else {
+            rowData[col.key] = val || '-';
+          }
         }
       });
       rowData['remark'] = '';
@@ -1124,8 +1140,8 @@ const Inventory = () => {
 
         const imageMap = {};
         if (visibleColumns.image) {
-          const uniqueUrls = [...new Set(filteredReportData.map(row => row.imageUrl).filter(url => url && url !== 'No Image'))];
-          const results = await Promise.all(uniqueUrls.map(async (url) => ({ url, b64: await loadImageAsBase64(url) })));
+          const uniqueUrls = [...new Set(filteredReportData.map(row => getItemImage(row)).filter(Boolean))];
+          const results = await Promise.all(uniqueUrls.map(async (url) => ({ url, b64: await loadImageAsBase64(getDisplayableImageUrl(url)) })));
           results.forEach(({ url, b64 }) => { if (b64) imageMap[url] = b64; });
         }
 
@@ -1145,17 +1161,20 @@ const Inventory = () => {
         doc.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth - 14, 10, { align: 'right' });
 
         let currentY = 14;
-        if (uniformInfo) {
-          doc.setFontSize(8);
-          doc.setTextColor(60, 60, 60);
-          doc.setFont(undefined, 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(60, 60, 60);
+        doc.setFont(undefined, 'bold');
 
-          const row1 = `Date: ${formatDate(uniformInfo.date)}    For: ${uniformInfo.for}`;
-          const row2 = `Party: ${uniformInfo.party}${uniformInfo.eventDate ? `    Event-Date: ${formatDate(uniformInfo.eventDate)}` : ''}`;
-          doc.text(row1, 14, 16);
-          doc.text(row2, 14, 21);
-          currentY = 28;
-        }
+        const dateStr = uniformInfo.date ? formatDate(uniformInfo.date) : 'Various';
+        const forStr = uniformInfo.for || 'Various';
+        const partyStr = uniformInfo.party || 'Various';
+        const eventDateStr = uniformInfo.eventDate ? formatDate(uniformInfo.eventDate) : (isIssued ? 'Various' : null);
+
+        const row1 = `Date: ${dateStr}    For: ${forStr}`;
+        const row2 = `Party: ${partyStr}${eventDateStr ? `    Event-Date: ${eventDateStr}` : ''}`;
+        doc.text(row1, 14, 16);
+        doc.text(row2, 14, 21);
+        currentY = 28;
 
         autoTable(doc, {
           startY: currentY,
@@ -1180,7 +1199,12 @@ const Inventory = () => {
                 const imgSize = Math.min(data.cell.width - padding * 2, data.cell.height - padding * 2, 8);
                 const x = data.cell.x + (data.cell.width - imgSize) / 2;
                 const y = data.cell.y + (data.cell.height - imgSize) / 2;
-                try { doc.addImage(b64, 'JPEG', x, y, imgSize, imgSize); } catch { /* ignore */ }
+                try {
+                  const fmt = b64.includes('image/png') ? 'PNG' : 'JPEG';
+                  doc.addImage(b64, fmt, x, y, imgSize, imgSize);
+                } catch {
+                  try { doc.addImage(b64, x, y, imgSize, imgSize); } catch { /* ignore */ }
+                }
               }
             }
           },

@@ -8,8 +8,32 @@
  * here due to Drive's CORS policy — callers already treat a null return as
  * "skip this image", so a PDF just omits that one image rather than failing.
  */
-export const loadImageAsBase64 = async (url) => {
-  if (!url || url === 'No Image') return null;
+export const loadImageAsBase64 = (url) => {
+  if (!url || url === 'No Image') return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width || 100;
+        canvas.height = img.naturalHeight || img.height || 100;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL('image/png');
+        resolve(dataUrl);
+      } catch {
+        fetchFallback(url).then(resolve);
+      }
+    };
+    img.onerror = () => {
+      fetchFallback(url).then(resolve);
+    };
+    img.src = url;
+  });
+};
+
+const fetchFallback = async (url) => {
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
@@ -24,3 +48,4 @@ export const loadImageAsBase64 = async (url) => {
     return null;
   }
 };
+

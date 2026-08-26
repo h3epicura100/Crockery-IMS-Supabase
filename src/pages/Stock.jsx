@@ -17,13 +17,17 @@ import {
   ArrowUpRight,
   CheckCircle2,
   ShoppingCart,
-  Settings2
+  Settings2,
+  FileText
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
 import { formatDate, parseRowDate, formatIndianAmount, normalizeForMatch } from "../utils/helpers";
 import { supabase } from "../utils/supabaseClient";
 import { uploadImage } from "../utils/supabaseStorage";
+import { loadImageAsBase64 } from "../utils/imageBase64";
 import { TABLES, COLUMNS, ENUMS, DROPDOWN_CATEGORY, withItemMaster } from "../utils/dbSchema";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function Stock() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -371,6 +375,163 @@ export default function Stock() {
     }, 0);
   }, [filteredStockRows]);
 
+  const [isReportGenerating, setIsReportGenerating] = useState(false);
+
+  const handleDownloadReport = () => {
+    if (filteredStockRows.length === 0) {
+      showToast('No records to export', 'info');
+      return;
+    }
+
+    const columnsToInclude = columnConfig.filter(col => visibleColumns[col.key] !== false);
+
+    const reportColumns = [
+      { header: 'S. No.', dataKey: 'sNo' },
+      ...columnsToInclude.map(col => ({ header: col.label, dataKey: col.key }))
+    ];
+
+    const getItemImage = (row) => {
+      if (row.image_url && row.image_url !== 'No Image') return row.image_url;
+      const match = items.find(i => i.id === row.item_id || i.item_name === row.item_name);
+      return match?.image_url && match.image_url !== 'No Image' ? match.image_url : null;
+    };
+
+    const body = filteredStockRows.map((row, index) => {
+      const rowData = { sNo: index + 1 };
+      columnsToInclude.forEach(col => {
+        if (col.key === 'image') {
+          rowData[col.key] = getItemImage(row) || '';
+        } else if (col.key === 'date') {
+          rowData[col.key] = formatDate(row.created_at);
+        } else if (col.key === 'perUnit') {
+          rowData[col.key] = `Rs ${parseFloat(row.per_unit || 0).toFixed(2)}`;
+        } else if (col.key === 'costPrice') {
+          const cPrice = row.total_cost ?? ((parseFloat(row.qty) || 0) * (parseFloat(row.per_unit) || 0));
+          rowData[col.key] = `Rs ${parseFloat(cPrice || 0).toFixed(2)}`;
+        } else if (col.key === 'balance') {
+          rowData[col.key] = row.qty || 0;
+        } else if (col.key === 'dept') {
+          rowData[col.key] = row.department || '-';
+        } else if (col.key === 'type') {
+          rowData[col.key] = row.inventory_type || '-';
+        } else if (col.key === 'item') {
+          rowData[col.key] = row.item_name || '-';
+        } else if (col.key === 'vendor') {
+          rowData[col.key] = row.vendor_name || '-';
+        } else if (col.key === 'remarks') {
+          rowData[col.key] = row.remarks || '-';
+        } else {
+          rowData[col.key] = row[col.key] || '-';
+        }
+      });
+      return rowData;
+    });
+
+    setIsReportGenerating(true);
+
+    setTimeout(async () => {
+      try {
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = doc.internal.pageSize.width;
+
+        const colStyles = {};
+        const availableWidth = pageWidth - 12;
+        const colCount = reportColumns.length;
+        const hasImage = reportColumns.some(c => c.dataKey === 'image');
+        const imgWeight = 1.4;
+        const otherWeight = 1.0;
+        const totalWeight = hasImage ? (colCount - 1) * otherWeight + imgWeight : colCount * otherWeight;
+        const unitWidth = availableWidth / totalWeight;
+
+        reportColumns.forEach(col => {
+          colStyles[col.dataKey] = { cellWidth: col.dataKey === 'image' ? unitWidth * imgWeight : unitWidth * otherWeight };
+        });
+
+        const imageMap = {};
+        if (visibleColumns.image) {
+          const uniqueUrls = [...new Set(filteredStockRows.map(row => getItemImage(row)).filter(Boolean))];
+          const results = await Promise.all(uniqueUrls.map(async (url) => ({ url, b64: await loadImageAsBase64(getDisplayableImageUrl(url)) })));
+          results.forEach(({ url, b64 }) => { if (b64) imageMap[url] = b64; });
+        }
+
+        const isPurchase = activeTab === 'purchase';
+        const title = `${isPurchase ? 'PURCHASE' : 'RE-PURCHASE'} HISTORY REPORT`;
+        const countText = `(${body.length})`;
+
+        doc.setFontSize(14);
+        doc.setTextColor(124, 58, 237);
+        doc.text(title, 14, 10);
+
+        const titleWidth = doc.getTextWidth(title);
+        doc.setFontSize(9);
+        doc.setTextColor(150, 150, 150);
+        doc.text(countText, 14 + titleWidth + 2, 10);
+
+        doc.setFontSize(7);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth - 14, 10, { align: 'right' });
+
+        doc.setFontSize(8);
+        doc.setTextColor(60, 60, 60);
+        doc.setFont(undefined, 'bold');
+
+        const totalCostStr = `Total Cost: Rs ${totalStockCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const dateRangeStr = (startDate || endDate) ? `Date Range: ${startDate || '...'} to ${endDate || '...'}` : 'Date Range: All Time';
+
+        doc.text(`${totalCostStr}    ${dateRangeStr}`, 14, 16);
+
+        autoTable(doc, {
+          startY: 22,
+          columns: reportColumns,
+          body: body,
+          theme: 'grid',
+          columnStyles: colStyles,
+          headStyles: { fillColor: [109, 40, 217], textColor: 255, fontSize: 7, fontStyle: 'bold', halign: 'center', cellPadding: 2 },
+          styles: { fontSize: 6, cellPadding: 1.5, halign: 'center', valign: 'middle', overflow: 'ellipsize', minCellHeight: 11.5 },
+          alternateRowStyles: { fillColor: [249, 250, 251] },
+          rowPageBreak: 'avoid',
+          margin: { top: 14, right: 6, bottom: 20, left: 6 },
+          willDrawCell: (data) => {
+            if (data.column.dataKey === 'image' && data.cell.section === 'body') data.cell.text = [];
+          },
+          didDrawCell: (data) => {
+            if (data.column.dataKey === 'image' && data.cell.section === 'body') {
+              const url = data.cell.raw;
+              const b64 = imageMap[url];
+              if (b64) {
+                const padding = 1;
+                const imgSize = Math.min(data.cell.width - padding * 2, data.cell.height - padding * 2, 8);
+                const x = data.cell.x + (data.cell.width - imgSize) / 2;
+                const y = data.cell.y + (data.cell.height - imgSize) / 2;
+                try {
+                  const fmt = b64.includes('image/png') ? 'PNG' : 'JPEG';
+                  doc.addImage(b64, fmt, x, y, imgSize, imgSize);
+                } catch {
+                  try { doc.addImage(b64, x, y, imgSize, imgSize); } catch {}
+                }
+              }
+            }
+          },
+          didDrawPage: function () {
+            const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
+            doc.setFontSize(8);
+            doc.setTextColor(120);
+            doc.text(`Page ${pageNumber} of {total_pages_count_string}`, doc.internal.pageSize.width - 6, doc.internal.pageSize.height - 8, { align: 'right' });
+          }
+        });
+
+        if (typeof doc.putTotalPages === 'function') doc.putTotalPages('{total_pages_count_string}');
+
+        doc.save(`${isPurchase ? 'Purchase' : 'Re-Purchase'}_History_${new Date().toISOString().split('T')[0]}.pdf`);
+        showToast('Report generated successfully');
+      } catch (err) {
+        showToast('Failed to generate report', 'error');
+      } finally {
+        setIsReportGenerating(false);
+      }
+    }, 100);
+  };
+
   // Items eligible for the Add Stock item picker: existing catalog items
   // matching whichever Inventory Type / Department filters are selected.
   const addStockItemOptions = useMemo(() => {
@@ -595,6 +756,14 @@ export default function Stock() {
             >
               <ShoppingCart className="h-4 w-4 text-violet-400" />
               Re-Purchase
+            </button>
+            <button
+              onClick={handleDownloadReport}
+              disabled={isReportGenerating || filteredStockRows.length === 0}
+              className="h-10 px-5 bg-violet-600 text-white rounded-lg flex items-center gap-2 text-sm font-semibold hover:bg-violet-700 transition-all active:scale-95 shadow-md shadow-violet-200 disabled:opacity-50"
+            >
+              {isReportGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+              <span>Download Report</span>
             </button>
           </div>
         </div>
