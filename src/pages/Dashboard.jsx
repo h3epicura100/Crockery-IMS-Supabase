@@ -122,18 +122,25 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from(TABLES.INVENTORY_CURRENT)
-        .select(`
-          item_id, opening_balance, closing_balance, current_stock,
-          total_purchased, total_issue, total_return, total_damage, total_missing,
-          image_url,
-          ${withItemMaster('item_name, inventory_type, department')}
-        `);
+      let all = [];
+      const pageSize = 1000;
+      for (let page = 0; ; page++) {
+        const { data, error } = await supabase
+          .from(TABLES.INVENTORY_CURRENT)
+          .select(`
+            item_id, opening_balance, closing_balance, current_stock,
+            total_purchased, total_issue, total_return, total_damage, total_missing,
+            image_url,
+            ${withItemMaster('item_name, inventory_type, department')}
+          `)
+          .range(page * pageSize, page * pageSize + pageSize - 1);
 
-      if (error) throw error;
+        if (error) throw error;
+        all = all.concat(data || []);
+        if (!data || data.length < pageSize) break;
+      }
 
-      setInventoryData((data || []).map((row, idx) => ({
+      setInventoryData(all.map((row, idx) => ({
         id: row.item_id,
         serial: idx + 1,
         type: row.item_master?.inventory_type,

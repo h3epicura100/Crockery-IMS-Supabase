@@ -64,15 +64,23 @@ export default function Master() {
 
   const fetchItems = useCallback(async () => {
     setItemsLoading(true);
-    const { data, error } = await supabase
-      .from(TABLES.ITEM_MASTER)
-      .select("*")
-      .order("item_name", { ascending: true });
-    if (error) {
-      showToast(error.message, "error");
-    } else {
-      setItems(data || []);
+    let all = [];
+    const pageSize = 1000;
+    for (let page = 0; ; page++) {
+      const { data, error } = await supabase
+        .from(TABLES.ITEM_MASTER)
+        .select("*")
+        .order("item_name", { ascending: true })
+        .range(page * pageSize, page * pageSize + pageSize - 1);
+
+      if (error) {
+        showToast(error.message, "error");
+        break;
+      }
+      all = all.concat(data || []);
+      if (!data || data.length < pageSize) break;
     }
+    setItems(all);
     setItemsLoading(false);
   }, []);
 
@@ -476,21 +484,21 @@ export default function Master() {
         )}
 
         {isItemModalOpen && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-              <div className="flex items-center justify-between mb-5">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 my-auto max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between mb-4 shrink-0">
                 <h3 className="text-lg font-bold text-slate-900">{itemForm.id ? "Edit Item" : "Add Item"}</h3>
                 <button onClick={() => setIsItemModalOpen(false)}><X className="h-5 w-5 text-slate-400" /></button>
               </div>
 
-              {itemError && (
-                <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                  <p className="text-xs text-red-600 font-medium">{itemError}</p>
-                </div>
-              )}
+              <div className="space-y-3 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0">
+                {itemError && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-100 flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-600 font-medium">{itemError}</p>
+                  </div>
+                )}
 
-              <div className="space-y-3">
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Item Name *</label>
                   <input value={itemForm.item_name} onChange={(e) => setItemForm(p => ({ ...p, item_name: e.target.value }))}
@@ -565,7 +573,7 @@ export default function Master() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 mt-6">
+              <div className="flex justify-end gap-2 pt-4 mt-4 border-t border-slate-100 shrink-0">
                 <button onClick={() => setIsItemModalOpen(false)} className="h-10 px-4 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50">Cancel</button>
                 <button
                   onClick={handleSaveItem}
@@ -573,7 +581,7 @@ export default function Master() {
                   className="h-10 px-5 rounded-xl bg-violet-600 text-white text-xs font-bold hover:bg-violet-700 disabled:opacity-50 flex items-center gap-2"
                 >
                   {itemSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  {itemForm.id ? "Save Changes" : "Add Item"}
+                  <span>{itemSaving ? "Saving..." : (itemForm.id ? "Save Changes" : "Add Item")}</span>
                 </button>
               </div>
             </div>

@@ -245,12 +245,19 @@ export default function Stock() {
   };
 
   const fetchItems = async () => {
-    const { data, error } = await supabase
-      .from(TABLES.ITEM_MASTER)
-      .select('*')
-      .order(COLUMNS.ITEM_MASTER.ITEM_NAME, { ascending: true });
-    if (error) { showToast(error.message, 'error'); return; }
-    setItems(data || []);
+    let all = [];
+    const pageSize = 1000;
+    for (let page = 0; ; page++) {
+      const { data, error } = await supabase
+        .from(TABLES.ITEM_MASTER)
+        .select('*')
+        .order(COLUMNS.ITEM_MASTER.ITEM_NAME, { ascending: true })
+        .range(page * pageSize, page * pageSize + pageSize - 1);
+      if (error) { showToast(error.message, 'error'); break; }
+      all = all.concat(data || []);
+      if (!data || data.length < pageSize) break;
+    }
+    setItems(all);
   };
 
   // Strict, admin-managed dropdown lists (Master > Dropdowns) — Inventory
@@ -270,14 +277,20 @@ export default function Stock() {
   };
 
   const fetchStockRows = async (source, setter) => {
-    const { data, error } = await supabase
-      .from(TABLES.STOCK_TRANSACTIONS)
-      .select(`*, ${withItemMaster('item_name, inventory_type, department')}`)
-      .eq(COLUMNS.STOCK_TRANSACTIONS.SOURCE, source)
-      .order(COLUMNS.STOCK_TRANSACTIONS.CREATED_AT, { ascending: false })
-      .range(0, 4999);
-    if (error) { showToast(error.message, 'error'); return; }
-    setter((data || []).map(row => ({
+    let all = [];
+    const pageSize = 1000;
+    for (let page = 0; ; page++) {
+      const { data, error } = await supabase
+        .from(TABLES.STOCK_TRANSACTIONS)
+        .select(`*, ${withItemMaster('item_name, inventory_type, department')}`)
+        .eq(COLUMNS.STOCK_TRANSACTIONS.SOURCE, source)
+        .order(COLUMNS.STOCK_TRANSACTIONS.CREATED_AT, { ascending: false })
+        .range(page * pageSize, page * pageSize + pageSize - 1);
+      if (error) { showToast(error.message, 'error'); break; }
+      all = all.concat(data || []);
+      if (!data || data.length < pageSize) break;
+    }
+    setter(all.map(row => ({
       id: row.id,
       serial_no: row.serial_no,
       created_at: row.created_at,

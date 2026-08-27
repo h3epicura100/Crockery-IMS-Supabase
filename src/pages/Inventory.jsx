@@ -329,14 +329,29 @@ const Inventory = () => {
     setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
   };
 
+  const fetchAllFromTable = async (table, selectQuery, orderCol = null, orderAsc = true) => {
+    let all = [];
+    const pageSize = 1000;
+    for (let page = 0; ; page++) {
+      let q = supabase.from(table).select(selectQuery);
+      if (orderCol) q = q.order(orderCol, { ascending: orderAsc });
+      q = q.range(page * pageSize, page * pageSize + pageSize - 1);
+      
+      const { data, error } = await q;
+      if (error) throw error;
+      all = all.concat(data || []);
+      if (!data || data.length < pageSize) break;
+    }
+    return all;
+  };
+
   const fetchInitialData = async () => {
     try {
-      const [itemsRes, dropdownRes] = await Promise.all([
-        supabase.from(TABLES.ITEM_MASTER).select('*').order(COLUMNS.ITEM_MASTER.ITEM_NAME),
+      const [allItems, dropdownRes] = await Promise.all([
+        fetchAllFromTable(TABLES.ITEM_MASTER, '*', COLUMNS.ITEM_MASTER.ITEM_NAME, true),
         supabase.from(TABLES.DROPDOWN_OPTIONS).select('*')
       ]);
-      if (itemsRes.error) throw itemsRes.error;
-      setItems(itemsRes.data || []);
+      setItems(allItems || []);
 
       if (!dropdownRes.error) {
         const rows = dropdownRes.data || [];
@@ -346,13 +361,16 @@ const Inventory = () => {
         });
       }
 
-      const { data: stockRows, error: stockError } = await supabase
-        .from(TABLES.INVENTORY_CURRENT)
-        .select(`${COLUMNS.INVENTORY_CURRENT.ITEM_ID}, ${COLUMNS.INVENTORY_CURRENT.CURRENT_STOCK}, ${COLUMNS.INVENTORY_CURRENT.IMAGE_URL}`);
-      if (!stockError) {
+      try {
+        const stockRows = await fetchAllFromTable(
+          TABLES.INVENTORY_CURRENT,
+          `${COLUMNS.INVENTORY_CURRENT.ITEM_ID}, ${COLUMNS.INVENTORY_CURRENT.CURRENT_STOCK}, ${COLUMNS.INVENTORY_CURRENT.IMAGE_URL}`
+        );
         const map = {};
         (stockRows || []).forEach(r => { map[r.item_id] = r; });
         setItemStockMap(map);
+      } catch {
+        // Fallback for stock map
       }
     } catch {
       showToast('Failed to load initial data', 'error');
@@ -362,71 +380,63 @@ const Inventory = () => {
   const fetchHistory = async () => {
     setIsTableLoading(true);
     try {
-      const [issuesRes, returnsRes] = await Promise.all([
-        supabase.from(TABLES.ISSUES)
-          .select(`*, ${withItemMaster('item_name, inventory_type, department')}`)
-          .order(COLUMNS.ISSUES.CREATED_AT, { ascending: false })
-          .range(0, 4999),
-        supabase.from(TABLES.RETURNS)
-          .select(`*, ${withItemMaster('item_name, inventory_type, department')}`)
-          .order(COLUMNS.RETURNS.CREATED_AT, { ascending: false })
-          .range(0, 4999)
+      const [allIssues, allReturns] = await Promise.all([
+        fetchAllFromTable(TABLES.ISSUES, `*, ${withItemMaster('item_name, inventory_type, department')}`, COLUMNS.ISSUES.CREATED_AT, false),
+        fetchAllFromTable(TABLES.RETURNS, `*, ${withItemMaster('item_name, inventory_type, department')}`, COLUMNS.RETURNS.CREATED_AT, false)
       ]);
 
-      if (!issuesRes.error) {
-        setIssueHistory((issuesRes.data || []).map(row => ({
-          id: row.id,
-          serial: row.serial_no,
-          itemId: row.item_id,
-          inventoryType: row.item_master?.inventory_type,
-          department: row.item_master?.department,
-          itemName: row.item_master?.item_name,
-          partyName: row.party_name,
-          eventDate: row.event_date,
-          qty: row.issue_qty,
-          damageRate: row.damage_rate,
-          rentingRate: row.renting_rate,
-          openingBalance: row.opening_balance,
-          closingBalance: row.closing_balance,
-          venueName: row.venue_name,
-          imageUrl: row.image_url,
-          remarks: row.remarks,
-          eventType: row.event_type,
-          estimatedCost: row.estimated_cost,
-          forType: row.for_type,
-          issuer: row.issuer,
-          dishes: row.dishes,
-          createdAt: row.created_at
-        })));
-      }
+      setIssueHistory((allIssues || []).map(row => ({
+        id: row.id,
+        serial: row.serial_no,
+        itemId: row.item_id,
+        inventoryType: row.item_master?.inventory_type,
+        department: row.item_master?.department,
+        itemName: row.item_master?.item_name,
+        partyName: row.party_name,
+        eventDate: row.event_date,
+        qty: row.issue_qty,
+        damageRate: row.damage_rate,
+        rentingRate: row.renting_rate,
+        openingBalance: row.opening_balance,
+        closingBalance: row.closing_balance,
+        venueName: row.venue_name,
+        imageUrl: row.image_url,
+        remarks: row.remarks,
+        eventType: row.event_type,
+        estimatedCost: row.estimated_cost,
+        forType: row.for_type,
+        issuer: row.issuer,
+        dishes: row.dishes,
+        createdAt: row.created_at
+      })));
 
-      if (!returnsRes.error) {
-        setReturnHistory((returnsRes.data || []).map(row => ({
-          id: row.id,
-          serial: row.serial_no,
-          itemId: row.item_id,
-          inventoryType: row.item_master?.inventory_type,
-          department: row.item_master?.department,
-          itemName: row.item_master?.item_name,
-          partyName: row.party_name,
-          eventDate: row.event_date,
-          returnDate: row.return_date,
-          issueQty: row.issue_qty,
-          qty: row.return_qty,
-          damage: row.damage_qty,
-          missing: row.missing_qty,
-          damageRate: row.damage_rate,
-          rentingRate: row.renting_rate,
-          openingBalance: row.opening_balance,
-          closingBalance: row.closing_balance,
-          totalBalance: row.total_balance,
-          imageUrl: row.image_url,
-          remarks: row.remarks,
-          totalCost: row.total_cost,
-          forType: row.for_type,
-          createdAt: row.created_at
-        })));
-      }
+      setReturnHistory((allReturns || []).map(row => ({
+        id: row.id,
+        serial: row.serial_no,
+        itemId: row.item_id,
+        inventoryType: row.item_master?.inventory_type,
+        department: row.item_master?.department,
+        itemName: row.item_master?.item_name,
+        partyName: row.party_name,
+        eventDate: row.event_date,
+        returnDate: row.return_date,
+        issueQty: row.issue_qty,
+        qty: row.return_qty,
+        damage: row.damage_qty,
+        missing: row.missing_qty,
+        damageRate: row.damage_rate,
+        rentingRate: row.renting_rate,
+        openingBalance: row.opening_balance,
+        closingBalance: row.closing_balance,
+        totalBalance: row.total_balance,
+        imageUrl: row.image_url,
+        remarks: row.remarks,
+        totalCost: row.total_cost,
+        forType: row.for_type,
+        createdAt: row.created_at
+      })));
+    } catch {
+      showToast('Failed to fetch history', 'error');
     } finally {
       setIsTableLoading(false);
     }
