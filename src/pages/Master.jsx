@@ -95,15 +95,24 @@ export default function Master() {
     fetchDropdowns();
   }, [fetchItems, fetchDropdowns]);
 
+  const [filterType, setFilterType] = useState("");
+
+  const typeOptions = useMemo(() => {
+    return [...new Set(items.map(i => i.inventory_type).filter(Boolean))].sort();
+  }, [items]);
+
   const filteredItems = useMemo(() => {
     const s = normalizeForMatch(itemSearch);
-    if (!s) return items;
-    return items.filter(i =>
-      normalizeForMatch(i.item_name).includes(s) ||
-      normalizeForMatch(i.inventory_type).includes(s) ||
-      normalizeForMatch(i.department).includes(s)
-    );
-  }, [items, itemSearch]);
+    return items.filter(i => {
+      const matchesSearch = !s || (
+        normalizeForMatch(i.item_name).includes(s) ||
+        normalizeForMatch(i.inventory_type).includes(s) ||
+        normalizeForMatch(i.department).includes(s)
+      );
+      const matchesType = !filterType || i.inventory_type === filterType;
+      return matchesSearch && matchesType;
+    });
+  }, [items, itemSearch, filterType]);
 
   const issuers = useMemo(() => dropdowns.filter(d => d.category === DROPDOWN_CATEGORY.ISSUER), [dropdowns]);
   const eventTypes = useMemo(() => dropdowns.filter(d => d.category === DROPDOWN_CATEGORY.EVENT_TYPE), [dropdowns]);
@@ -297,17 +306,40 @@ export default function Master() {
 
         {activeTab === "items" && (
           <div className="bg-white rounded-xl rounded-tl-none border border-slate-100 shadow-sm">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <div className="relative w-64">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search items..."
-                  value={itemSearch}
-                  onChange={(e) => setItemSearch(e.target.value)}
-                  className="h-9 w-full pl-10 pr-4 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 focus:ring-4 focus:ring-violet-500/5 outline-none text-xs text-slate-600 font-medium"
-                />
+            <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-slate-100">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative w-64">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search items..."
+                    value={itemSearch}
+                    onChange={(e) => setItemSearch(e.target.value)}
+                    className="h-9 w-full pl-10 pr-4 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 focus:ring-4 focus:ring-violet-500/5 outline-none text-xs text-slate-600 font-medium"
+                  />
+                </div>
+
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="h-9 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer min-w-[130px]"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '12px' }}
+                >
+                  <option value="">All Types</option>
+                  {typeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+
+                {filterType && (
+                  <button
+                    onClick={() => setFilterType("")}
+                    className="h-9 px-3 hover:bg-red-50 text-red-500 rounded-xl transition-colors flex items-center gap-1 text-xs font-bold"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    <span>Clear</span>
+                  </button>
+                )}
               </div>
+
               <button
                 onClick={openAddItem}
                 className="h-9 px-4 rounded-xl bg-violet-600 text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-violet-700 transition-all"
