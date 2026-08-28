@@ -698,7 +698,7 @@ export default function Stock() {
 
   return (
     <AdminLayout>
-      <div className="h-[calc(100vh-42px)] bg-[#f0f2f8] font-sans flex flex-col overflow-hidden">
+      <div className="min-h-[calc(100vh-42px)] bg-[#f0f2f8] font-sans flex flex-col overflow-hidden">
 
         {/* Toast */}
         {toast.show && (
@@ -713,17 +713,17 @@ export default function Stock() {
         )}
 
         {/* ── Page-level top bar ── */}
-        <div className="flex items-center justify-between px-8 pt-6 pb-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-3 sm:px-8 pt-4 sm:pt-6 pb-3">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Stock Management</h1>
+            <h1 className="text-xl sm:text-3xl font-bold text-slate-800 tracking-tight">Stock Management</h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             {selectedIds.size > 0 && (
               <button
                 onClick={handleDeleteSelected}
                 disabled={isSubmitting}
-                className="h-10 px-6 rounded-lg flex items-center gap-2 text-sm font-bold transition-all shadow-lg animate-in fade-in zoom-in-95 bg-rose-600 text-white hover:bg-rose-700 shadow-rose-100/50 active:scale-95 disabled:opacity-55"
+                className="h-10 px-4 sm:px-6 rounded-lg flex items-center gap-2 text-xs sm:text-sm font-bold transition-all shadow-lg animate-in fade-in zoom-in-95 bg-rose-600 text-white hover:bg-rose-700 shadow-rose-100/50 active:scale-95 disabled:opacity-55"
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 Delete ({selectedIds.size})
@@ -733,7 +733,7 @@ export default function Stock() {
               <button
                 onClick={handleBatchSubmit}
                 disabled={isSubmitting || changedRowsCount === 0}
-                className={`h-10 px-6 rounded-lg flex items-center gap-2 text-sm font-bold transition-all shadow-lg animate-in fade-in zoom-in-95 ${
+                className={`h-10 px-4 sm:px-6 rounded-lg flex items-center gap-2 text-xs sm:text-sm font-bold transition-all shadow-lg animate-in fade-in zoom-in-95 ${
                   changedRowsCount > 0
                   ? "bg-orange-600 text-white hover:bg-orange-700 shadow-orange-100"
                   : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
@@ -745,11 +745,11 @@ export default function Stock() {
             )}
             <div
               onClick={() => setShowFullTotal(!showFullTotal)}
-              className="flex items-center h-10 px-4 bg-emerald-600 text-white rounded-lg shadow-sm animate-in fade-in slide-in-from-right-4 duration-500 cursor-pointer hover:bg-emerald-700 transition-all select-none"
+              className="flex items-center h-10 px-3 sm:px-4 bg-emerald-600 text-white rounded-lg shadow-sm animate-in fade-in slide-in-from-right-4 duration-500 cursor-pointer hover:bg-emerald-700 transition-all select-none"
               title={showFullTotal ? "Click to see short format" : "Click to see exact amount"}
             >
-              <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mr-3">{activeTab === 'purchase' ? 'Purchase Total:' : 'Re-Purchase Total:'}</span>
-              <span className="text-sm font-bold text-white">
+              <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mr-2 sm:mr-3">{activeTab === 'purchase' ? 'Purchase Total:' : 'Re-Purchase Total:'}</span>
+              <span className="text-xs sm:text-sm font-bold text-white">
                 ₹{showFullTotal
                    ? totalStockCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                    : formatIndianAmount(totalStockCost)
@@ -758,14 +758,14 @@ export default function Stock() {
             </div>
             <button
               onClick={() => { setIsModalOpen(true); setImagePreview(null); setSelectedImage(null); }}
-              className="h-10 px-5 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white rounded-lg flex items-center gap-2 text-sm font-semibold hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-violet-100"
+              className="h-10 px-3.5 sm:px-5 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white rounded-lg flex items-center gap-2 text-xs sm:text-sm font-semibold hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-violet-100"
             >
               <PlusCircle className="h-4 w-4" />
               Add Stock
             </button>
             <button
               onClick={() => { setIsPurchaseModalOpen(true); setImagePreview(null); setSelectedImage(null); }}
-              className="h-10 px-5 bg-white border border-violet-200 text-violet-600 rounded-lg flex items-center gap-2 text-sm font-semibold hover:bg-violet-50 transition-all active:scale-95 shadow-sm"
+              className="h-10 px-3.5 sm:px-5 bg-white border border-violet-200 text-violet-600 rounded-lg flex items-center gap-2 text-xs sm:text-sm font-semibold hover:bg-violet-50 transition-all active:scale-95 shadow-sm"
             >
               <ShoppingCart className="h-4 w-4 text-violet-400" />
               Re-Purchase
@@ -773,7 +773,7 @@ export default function Stock() {
             <button
               onClick={handleDownloadReport}
               disabled={isReportGenerating || filteredStockRows.length === 0}
-              className="h-10 px-5 bg-violet-600 text-white rounded-lg flex items-center gap-2 text-sm font-semibold hover:bg-violet-700 transition-all active:scale-95 shadow-md shadow-violet-200 disabled:opacity-50"
+              className="h-10 px-3.5 sm:px-5 bg-violet-600 text-white rounded-lg flex items-center gap-2 text-xs sm:text-sm font-semibold hover:bg-violet-700 transition-all active:scale-95 shadow-md shadow-violet-200 disabled:opacity-50"
             >
               {isReportGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
               <span>Download Report</span>
@@ -782,43 +782,43 @@ export default function Stock() {
         </div>
 
         {/* ── White card wrapping title + filters + table ── */}
-        <div className="mx-6 mb-6 bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col flex-1 min-h-0 overflow-visible relative">
+        <div className="mx-2 sm:mx-6 mb-6 bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col flex-1 min-h-0 relative">
 
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100/50 rounded-t-xl">
-            <div className="flex gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl shadow-inner-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-100/50 rounded-t-xl">
+            <div className="flex gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl shadow-inner-sm self-start lg:self-auto">
               <button
                 onClick={() => setActiveTab('purchase')}
-                className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'purchase' ? 'bg-white text-violet-600 shadow-xl shadow-violet-100/50 scale-[1.02]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'purchase' ? 'bg-white text-violet-600 shadow-xl shadow-violet-100/50 scale-[1.02]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
               >
                 Purchase History
               </button>
               <button
                 onClick={() => setActiveTab('repurchase')}
-                className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'repurchase' ? 'bg-white text-violet-600 shadow-xl shadow-violet-100/50 scale-[1.02]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'repurchase' ? 'bg-white text-violet-600 shadow-xl shadow-violet-100/50 scale-[1.02]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
               >
                 Re-Purchase History
               </button>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-3">
-                <div className="relative group">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <div className="relative group w-full sm:w-48">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 group-focus-within:text-violet-500 transition-colors" />
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search items..."
-                    className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-bold focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:bg-white w-48 transition-all"
+                    className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-bold focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:bg-white w-full transition-all"
                   />
                 </div>
 
-                <div className="flex items-center gap-1.5 p-1 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-50 rounded-2xl border border-slate-100 max-w-full">
                   <select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}
-                    className="h-8 pl-2 pr-8 bg-white border border-slate-200 rounded-xl text-[10px] font-bold text-slate-600 appearance-none cursor-pointer hover:border-violet-300 transition-all min-w-[80px]"
-                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '12px' }}
+                    className="h-8 pl-2 pr-6 bg-white border border-slate-200 rounded-xl text-[10px] font-bold text-slate-600 appearance-none cursor-pointer hover:border-violet-300 transition-all max-w-[95px] truncate"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
                   >
                     <option value="">All Types</option>
                     {typeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -827,17 +827,17 @@ export default function Stock() {
                   <select
                     value={filterItem}
                     onChange={(e) => setFilterItem(e.target.value)}
-                    className="h-8 pl-2 pr-8 bg-white border border-slate-200 rounded-xl text-[10px] font-bold text-slate-600 appearance-none cursor-pointer hover:border-violet-300 transition-all min-w-[90px]"
-                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '12px' }}
+                    className="h-8 pl-2 pr-6 bg-white border border-slate-200 rounded-xl text-[10px] font-bold text-slate-600 appearance-none cursor-pointer hover:border-violet-300 transition-all max-w-[95px] truncate"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
                   >
                     <option value="">All Items</option>
                     {itemOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
 
-                  <div className="relative border-l border-slate-200 ml-1 pl-1">
+                  <div className="relative border-l border-slate-200 ml-0.5 pl-1">
                     <button
                       onClick={() => setIsDateMenuOpen(!isDateMenuOpen)}
-                      className={`h-8 px-3 rounded-xl border border-slate-100 flex items-center gap-2 text-[10px] font-bold tracking-wider transition-all ${isDateMenuOpen || startDate || endDate ? 'bg-violet-600 text-white border-violet-600 shadow-lg shadow-violet-200' : 'bg-slate-50 text-slate-600 hover:bg-white'}`}
+                      className={`h-8 px-2.5 sm:px-3 rounded-xl border border-slate-100 flex items-center gap-1.5 text-[10px] font-bold tracking-wider transition-all ${isDateMenuOpen || startDate || endDate ? 'bg-violet-600 text-white border-violet-600 shadow-lg shadow-violet-200' : 'bg-slate-50 text-slate-600 hover:bg-white'}`}
                     >
                       <Calendar className={`h-3 w-3 ${isDateMenuOpen || startDate || endDate ? 'text-white' : 'text-slate-400'}`} />
                       <span>{startDate || endDate ? `${startDate || '...'} - ${endDate || '...'}` : 'DATE'}</span>
@@ -952,8 +952,8 @@ export default function Stock() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-auto custom-scrollbar">
-            <table className="w-full text-center border-collapse border-separate border-spacing-0">
+          <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
+            <table className="w-full text-center border-collapse border-separate border-spacing-0 min-w-[650px]">
               <thead className="sticky top-0 z-20">
                 <tr className="bg-violet-50 border-none shadow-sm">
                   <th className="px-4 py-4 w-12 text-center bg-violet-50">
@@ -1104,14 +1104,14 @@ export default function Stock() {
 
         {/* RE-PURCHASE MODAL */}
         {isPurchaseModalOpen && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 backdrop-blur-[2px]">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6 backdrop-blur-[2px] overflow-y-auto">
             <div
               className="absolute inset-0 bg-slate-900/30 animate-in fade-in duration-200"
               onClick={() => !isSubmitting && setIsPurchaseModalOpen(false)}
             />
 
-            <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 border border-slate-100">
-              <div className="px-7 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 border border-slate-100 max-h-[90vh] flex flex-col overflow-hidden my-auto">
+              <div className="px-4 sm:px-7 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
                 <h3 className="text-base font-bold text-slate-800">Re-Purchase Item</h3>
                 <button
                   onClick={() => setIsPurchaseModalOpen(false)}
@@ -1121,8 +1121,8 @@ export default function Stock() {
                 </button>
               </div>
 
-              <form onSubmit={handlePurchaseSubmit} className="px-7 py-5 space-y-5 max-h-[72vh] overflow-y-auto pb-12 custom-scrollbar">
-                <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={handlePurchaseSubmit} className="px-4 sm:px-7 py-5 space-y-4 sm:space-y-5 overflow-y-auto custom-scrollbar flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Inventory Type</label>
                     <div className="relative">
@@ -1213,7 +1213,7 @@ export default function Stock() {
                 </div>
               </div>
 
-                <div className="space-y-5 animate-in slide-in-from-top-4 duration-500">
+                <div className="space-y-4 sm:space-y-5 animate-in slide-in-from-top-4 duration-500">
                   {purchaseForm.itemId && (
                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-4">
                       <div className="grid grid-cols-2 gap-x-6 gap-y-3">
@@ -1229,7 +1229,7 @@ export default function Stock() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Vendor Name</label>
                       <input
@@ -1273,7 +1273,7 @@ export default function Stock() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Item-Image</label>
                       <div className="h-11">
@@ -1302,7 +1302,7 @@ export default function Stock() {
                         <div className="absolute top-2 right-2">
                           <button
                             type="button"
-                            onClick={() => { setImagePreview(null); setSelectedImage(null); if (!selectedImage) setPurchaseForm(p => ({ ...p, imageUrl: '' })); }}
+                            onClick={() => { setImagePreview(null); setSelectedImage(null); setPurchaseForm(p => ({ ...p, imageUrl: '' })); }}
                             className="p-1.5 bg-black/50 hover:bg-black/70 text-white rounded-lg backdrop-blur-sm transition-all"
                           >
                             <X className="h-3.5 w-3.5" />
@@ -1313,7 +1313,7 @@ export default function Stock() {
                   )}
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Remarks</label>
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Remarks (Optional)</label>
                     <textarea
                       value={purchaseForm.remarks}
                       onChange={(e) => setPurchaseForm(prev => ({ ...prev, remarks: e.target.value }))}
@@ -1325,7 +1325,7 @@ export default function Stock() {
                 </div>
               </form>
 
-              <div className="px-7 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+              <div className="px-4 sm:px-7 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
                 <button type="button" onClick={() => setIsPurchaseModalOpen(false)} disabled={isSubmitting} className="px-5 py-2.5 rounded-lg text-sm font-semibold text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 transition-all font-sans">Cancel</button>
                 <button onClick={handlePurchaseSubmit} disabled={isSubmitting} className="px-6 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-all flex items-center gap-2 font-sans">
                   {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -1338,15 +1338,15 @@ export default function Stock() {
 
         {/* ADD STOCK MODAL */}
         {isModalOpen && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 backdrop-blur-[2px]">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6 backdrop-blur-[2px] overflow-y-auto">
             <div className="absolute inset-0 bg-slate-900/30 animate-in fade-in duration-200" onClick={() => !isSubmitting && setIsModalOpen(false)} />
-            <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 border border-slate-100">
-              <div className="px-7 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 border border-slate-100 max-h-[90vh] flex flex-col overflow-hidden my-auto">
+              <div className="px-4 sm:px-7 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
                 <h3 className="text-base font-bold text-slate-800">Add Stock Item</h3>
                 <button onClick={() => setIsModalOpen(false)} className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-all font-sans"><X className="h-4 w-4" /></button>
               </div>
-              <form onSubmit={handleSubmit} className="px-7 py-5 space-y-4 max-h-[72vh] overflow-y-auto custom-scrollbar font-sans">
-                <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={handleSubmit} className="px-4 sm:px-7 py-5 space-y-4 max-h-[72vh] overflow-y-auto custom-scrollbar font-sans flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Inventory Type</label>
                     <select
@@ -1391,7 +1391,7 @@ export default function Stock() {
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mt-1.5 px-1">No items found — create it in Master &gt; Items first.</p>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Vendor Name</label>
                     <input type="text" name="vendorName" value={form.vendorName} onChange={handleChange} required placeholder="Enter vendor name" className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 font-sans" />
@@ -1410,7 +1410,7 @@ export default function Stock() {
                     </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Opening Balance</label>
                     <input type="number" onWheel={(e) => e.target.blur()} name="openingBalance" value={form.openingBalance} onChange={handleChange} required placeholder="e.g. 100" className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 font-sans" />
@@ -1451,7 +1451,7 @@ export default function Stock() {
                   <textarea name="remarks" value={form.remarks} onChange={handleChange} placeholder="Add any notes..." rows="2" className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 resize-none font-sans" />
                 </div>
               </form>
-              <div className="px-7 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+              <div className="px-4 sm:px-7 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
                 <button type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting} className="px-5 py-2.5 rounded-lg text-sm font-semibold text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 transition-all font-sans">Cancel</button>
                 <button onClick={handleSubmit} disabled={isSubmitting} className="px-6 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-all flex items-center gap-2 font-sans font-sans">
                   {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}

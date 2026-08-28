@@ -381,10 +381,10 @@ export default function Dashboard() {
       <div className="min-h-screen bg-[#f0f2f8] font-sans flex flex-col">
         <div className="flex-1 flex flex-col min-h-0 space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-1000">
 
-          <div className="flex flex-wrap items-center justify-between gap-4 px-4 sm:px-8 pt-6 pb-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Executive Dashboard</h1>
+          <div className="flex flex-wrap items-center justify-between gap-3 px-3 sm:px-8 pt-4 sm:pt-6 pb-2">
+            <h1 className="text-xl sm:text-3xl font-bold text-slate-900 tracking-tight">Executive Dashboard</h1>
             <div className="flex items-center gap-3">
-              <button onClick={() => activeTab === "today" ? fetchDashboardData() : fetchHistoryData()} className="p-3.5 bg-white border border-violet-100 rounded-xl text-slate-400 hover:text-violet-600 shadow-xl shadow-violet-500/5 transition-all active:scale-95">
+              <button onClick={() => activeTab === "today" ? fetchDashboardData() : fetchHistoryData()} className="p-2.5 sm:p-3.5 bg-white border border-violet-100 rounded-xl text-slate-400 hover:text-violet-600 shadow-xl shadow-violet-500/5 transition-all active:scale-95">
                 <RefreshCw className={`h-4.5 w-4.5 ${(loading || historyLoading) ? 'animate-spin' : ''}`} />
               </button>
               <div className="h-8 w-[1px] bg-slate-200 mx-1"></div>
@@ -392,35 +392,35 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 px-4 sm:px-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 px-3 sm:px-6">
             <MetricCard title="Total Purchased" value={formatNumber(dashboardStats.totalPurchased)} icon={Package} color="bg-violet-600" loading={loading} />
             <MetricCard title="Opening Balance" value={formatNumber(dashboardStats.openingBalance)} icon={Layout} color="bg-fuchsia-600" loading={loading} />
             <MetricCard title="Total Issued" value={formatNumber(dashboardStats.totalIssued)} icon={Activity} color="bg-blue-500" loading={loading} />
             <MetricCard title="Total Returned" value={formatNumber(dashboardStats.totalReturned)} icon={RefreshCw} color="bg-emerald-500" loading={loading} />
           </div>
 
-          <div className="bg-white mx-4 sm:mx-6 mb-6 rounded-xl border border-slate-100 shadow-sm flex flex-col flex-1 min-h-0 relative">
+          <div className="bg-white mx-3 sm:mx-6 mb-6 rounded-xl border border-slate-100 shadow-sm flex flex-col flex-1 min-h-0 relative">
             
             <div className="flex flex-col border-b border-slate-100/50">
-              <div className="flex px-4 sm:px-6 pt-4 gap-1">
+              <div className="flex px-3 sm:px-6 pt-4 gap-1">
                 <button 
                   onClick={() => setActiveTab("today")}
-                  className={`px-5 sm:px-6 py-2 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "today" ? 'bg-slate-50 text-violet-600 border-x border-t border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                  className={`px-4 sm:px-6 py-2 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "today" ? 'bg-slate-50 text-violet-600 border-x border-t border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
                 >
                   Today
                 </button>
                 <button 
                   onClick={() => setActiveTab("history")}
-                  className={`px-5 sm:px-6 py-2 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "history" ? 'bg-slate-50 text-violet-600 border-x border-t border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                  className={`px-4 sm:px-6 py-2 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "history" ? 'bg-slate-50 text-violet-600 border-x border-t border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
                 >
                   History
                 </button>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 bg-slate-50/50">
-                <div className="flex flex-wrap items-center gap-3 min-w-0">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-3 sm:px-6 py-3 sm:py-4 bg-slate-50/50">
+                <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto min-w-0">
                   <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight whitespace-nowrap">Inventory Details</h3>
-                  <div className="relative w-40 sm:w-52 md:w-60 group">
+                  <div className="relative w-full sm:w-52 md:w-60 group">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 group-focus-within:text-violet-500 transition-colors" />
                     <input
                       type="text"

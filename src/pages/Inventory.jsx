@@ -1300,21 +1300,21 @@ const Inventory = () => {
 
   return (
     <AdminLayout>
-      <div className="h-[calc(100vh-42px)] bg-[#f0f2f8] font-sans flex flex-col overflow-hidden">
+      <div className="min-h-[calc(100vh-42px)] bg-[#f0f2f8] font-sans flex flex-col overflow-hidden">
         {toast.show && (
           <div className={`fixed bottom-8 right-8 px-6 py-4 rounded-3xl shadow-2xl z-[200] transition-all duration-300 transform animate-in slide-in-from-right-8 ${toast.type === "success" ? "bg-violet-600 text-white shadow-violet-200" : "bg-red-600 text-white shadow-red-200"}`}>
             <div className="flex items-center gap-3 font-sans"><span className="text-[10px] font-black uppercase tracking-widest">{toast.message}</span></div>
           </div>
         )}
 
-        <div className="flex items-center justify-between px-8 pt-6 pb-4">
-          <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Inventory Management</h1>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-3 sm:px-8 pt-4 sm:pt-6 pb-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            <h1 className="text-xl sm:text-3xl font-bold text-slate-800 tracking-tight">Inventory Management</h1>
             {selectedIds.size > 0 && (
               <button
                 onClick={handleDeleteSelected}
                 disabled={isSubmitting}
-                className="h-10 px-6 rounded-lg flex items-center gap-2 text-sm font-bold transition-all shadow-lg animate-in fade-in zoom-in-95 bg-rose-600 text-white hover:bg-rose-700 shadow-rose-100/50 active:scale-95 disabled:opacity-55"
+                className="h-10 px-4 sm:px-6 rounded-lg flex items-center gap-2 text-xs sm:text-sm font-bold transition-all shadow-lg animate-in fade-in zoom-in-95 bg-rose-600 text-white hover:bg-rose-700 shadow-rose-100/50 active:scale-95 disabled:opacity-55"
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 Delete ({selectedIds.size})
@@ -1324,7 +1324,7 @@ const Inventory = () => {
               <button
                 onClick={handleBatchSubmit}
                 disabled={isSubmitting || changedRowsCount === 0}
-                className={`h-10 px-6 rounded-lg flex items-center gap-2 text-sm font-bold transition-all shadow-lg animate-in fade-in zoom-in-95 ${changedRowsCount > 0
+                className={`h-10 px-4 sm:px-6 rounded-lg flex items-center gap-2 text-xs sm:text-sm font-bold transition-all shadow-lg animate-in fade-in zoom-in-95 ${changedRowsCount > 0
                     ? "bg-orange-600 text-white hover:bg-orange-700 shadow-orange-100"
                     : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
                   }`}
@@ -1334,33 +1334,33 @@ const Inventory = () => {
               </button>
             )}
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             <div
               onClick={() => setShowFullTotal(!showFullTotal)}
-              className="flex items-center h-10 px-4 bg-emerald-600 text-white rounded-lg shadow-sm animate-in fade-in slide-in-from-right-4 duration-500 cursor-pointer hover:bg-emerald-700 transition-all select-none"
+              className="flex items-center h-10 px-3 sm:px-4 bg-emerald-600 text-white rounded-lg shadow-sm animate-in fade-in slide-in-from-right-4 duration-500 cursor-pointer hover:bg-emerald-700 transition-all select-none"
               title={showFullTotal ? "Click to see short format" : "Click to see exact amount"}
             >
-              <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mr-3">
+              <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mr-2 sm:mr-3">
                 {activeTab === 'issued' ? 'Issue Amount:' : 'Return Amount:'}
               </span>
-              <span className="text-sm font-bold text-white">
+              <span className="text-xs sm:text-sm font-bold text-white">
                 ₹{showFullTotal
                   ? totalInventoryCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                   : formatIndianAmount(totalInventoryCost)
                 }
               </span>
             </div>
-            <button onClick={() => { setIsIssueModalOpen(true); setImagePreview(null); setSelectedImage(null); }} className="h-10 px-5 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white rounded-lg flex items-center gap-2 text-sm font-semibold hover:opacity-90 transition-all shadow-lg shadow-violet-100">
+            <button onClick={() => { setIsIssueModalOpen(true); setImagePreview(null); setSelectedImage(null); }} className="h-10 px-3.5 sm:px-5 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white rounded-lg flex items-center gap-2 text-xs sm:text-sm font-semibold hover:opacity-90 transition-all shadow-lg shadow-violet-100">
               <ClipboardList className="h-4 w-4 text-white/70" /> Issue Form
             </button>
-            <button onClick={() => { setIsReturnModalOpen(true); setImagePreview(null); setSelectedImage(null); }} className="h-10 px-5 bg-white border border-fuchsia-200 text-fuchsia-600 rounded-lg flex items-center gap-2 text-sm font-semibold hover:bg-fuchsia-50 transition-all shadow-sm">
+            <button onClick={() => { setIsReturnModalOpen(true); setImagePreview(null); setSelectedImage(null); }} className="h-10 px-3.5 sm:px-5 bg-white border border-fuchsia-200 text-fuchsia-600 rounded-lg flex items-center gap-2 text-xs sm:text-sm font-semibold hover:bg-fuchsia-50 transition-all shadow-sm">
               <ArrowLeftRight className="h-4 w-4 text-fuchsia-400" /> Return Form
             </button>
             {activeTab === 'return' && (
               <button
                 onClick={handleGenerateReport}
                 disabled={isReportGenerating}
-                className={`h-10 px-5 bg-gradient-to-r from-indigo-600 to-violet-500 text-white rounded-lg flex items-center gap-2 text-sm font-semibold transition-all shadow-lg shadow-indigo-100 ${isReportGenerating ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-90'}`}
+                className={`h-10 px-3.5 sm:px-5 bg-gradient-to-r from-indigo-600 to-violet-500 text-white rounded-lg flex items-center gap-2 text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-indigo-100 ${isReportGenerating ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-90'}`}
               >
                 {isReportGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4 text-white/70" />}
                 Return Report
@@ -1369,48 +1369,48 @@ const Inventory = () => {
           </div>
         </div>
 
-        <div className="mx-6 mb-6 bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col flex-1 min-h-0 overflow-visible relative">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100/50 rounded-t-xl">
-            <div className="flex gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl shadow-inner-sm">
-              <button onClick={() => setActiveTab('issued')} className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'issued' ? 'bg-white text-fuchsia-600 shadow-xl shadow-fuchsia-100/50 scale-[1.02]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}>Issued History</button>
-              <button onClick={() => setActiveTab('return')} className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'return' ? 'bg-white text-fuchsia-600 shadow-xl shadow-fuchsia-100/50 scale-[1.02]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}>Return History</button>
+        <div className="mx-2 sm:mx-6 mb-6 bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col flex-1 min-h-0 relative">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-100/50 rounded-t-xl">
+            <div className="flex gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl shadow-inner-sm self-start lg:self-auto">
+              <button onClick={() => setActiveTab('issued')} className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'issued' ? 'bg-white text-fuchsia-600 shadow-xl shadow-fuchsia-100/50 scale-[1.02]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}>Issued History</button>
+              <button onClick={() => setActiveTab('return')} className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'return' ? 'bg-white text-fuchsia-600 shadow-xl shadow-fuchsia-100/50 scale-[1.02]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}>Return History</button>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-3">
-                <div className="relative group">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <div className="relative group w-full sm:w-48">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 group-focus-within:text-violet-500 transition-colors" />
-                  <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search..." className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-bold focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:bg-white w-40 transition-all" />
+                  <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search..." className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-bold focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:bg-white w-full transition-all" />
                 </div>
 
-                <div className="flex items-center gap-1.5 p-1 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-50 rounded-2xl border border-slate-100 max-w-full">
                   {activeTab === 'issued' ? (
                     <>
-                      <select value={issuedFilterParty} onChange={(e) => setIssuedFilterParty(e.target.value)} className="h-8 pl-2 pr-8 bg-white border border-slate-200/60 rounded-xl text-[10px] font-bold text-slate-600 appearance-none min-w-[90px] hover:border-fuchsia-200 transition-all cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23d946ef' stroke-width='3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '12px' }}>
+                      <select value={issuedFilterParty} onChange={(e) => setIssuedFilterParty(e.target.value)} className="h-8 pl-2 pr-6 bg-white border border-slate-200/60 rounded-xl text-[10px] font-bold text-slate-600 appearance-none max-w-[95px] truncate hover:border-fuchsia-200 transition-all cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23d946ef' stroke-width='3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}>
                         <option value="">All Party</option>
                         {issuedOptions.parties.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
-                      <select value={issuedFilterItem} onChange={(e) => setIssuedFilterItem(e.target.value)} className="h-8 pl-2 pr-8 bg-white border border-slate-200/60 rounded-xl text-[10px] font-bold text-slate-600 appearance-none min-w-[90px] hover:border-fuchsia-200 transition-all cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23d946ef' stroke-width='3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '12px' }}>
+                      <select value={issuedFilterItem} onChange={(e) => setIssuedFilterItem(e.target.value)} className="h-8 pl-2 pr-6 bg-white border border-slate-200/60 rounded-xl text-[10px] font-bold text-slate-600 appearance-none max-w-[95px] truncate hover:border-fuchsia-200 transition-all cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23d946ef' stroke-width='3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}>
                         <option value="">All Items</option>
                         {issuedOptions.items.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
                     </>
                   ) : (
                     <>
-                      <select value={returnFilterParty} onChange={(e) => setReturnFilterParty(e.target.value)} className="h-8 pl-2 pr-8 bg-white border border-slate-200/60 rounded-xl text-[10px] font-bold text-slate-600 appearance-none min-w-[90px] hover:border-fuchsia-200 transition-all cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23d946ef' stroke-width='3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '12px' }}>
+                      <select value={returnFilterParty} onChange={(e) => setReturnFilterParty(e.target.value)} className="h-8 pl-2 pr-6 bg-white border border-slate-200/60 rounded-xl text-[10px] font-bold text-slate-600 appearance-none max-w-[95px] truncate hover:border-fuchsia-200 transition-all cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23d946ef' stroke-width='3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}>
                         <option value="">All Party</option>
                         {returnOptions.parties.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
-                      <select value={returnFilterItem} onChange={(e) => setReturnFilterItem(e.target.value)} className="h-8 pl-2 pr-8 bg-white border border-slate-200/60 rounded-xl text-[10px] font-bold text-slate-600 appearance-none min-w-[90px] hover:border-fuchsia-200 transition-all cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23d946ef' stroke-width='3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '12px' }}>
+                      <select value={returnFilterItem} onChange={(e) => setReturnFilterItem(e.target.value)} className="h-8 pl-2 pr-6 bg-white border border-slate-200/60 rounded-xl text-[10px] font-bold text-slate-600 appearance-none max-w-[95px] truncate hover:border-fuchsia-200 transition-all cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23d946ef' stroke-width='3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}>
                         <option value="">All Items</option>
                         {returnOptions.items.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
                     </>
                   )}
-                  <div className="relative border-l border-slate-200 ml-1 pl-1">
+                  <div className="relative border-l border-slate-200 ml-0.5 pl-1">
                     <button
                       onClick={() => setIsDateMenuOpen(!isDateMenuOpen)}
-                      className={`h-8 px-3 rounded-xl border border-slate-100 flex items-center gap-2 text-[10px] font-bold tracking-wider transition-all ${isDateMenuOpen || (activeTab === 'issued' ? (issuedStartDate || issuedEndDate) : (returnStartDate || returnEndDate)) ? 'bg-violet-600 text-white border-violet-600 shadow-lg shadow-violet-200' : 'bg-slate-50 text-slate-600 hover:bg-white'}`}
+                      className={`h-8 px-2.5 sm:px-3 rounded-xl border border-slate-100 flex items-center gap-1.5 text-[10px] font-bold tracking-wider transition-all ${isDateMenuOpen || (activeTab === 'issued' ? (issuedStartDate || issuedEndDate) : (returnStartDate || returnEndDate)) ? 'bg-violet-600 text-white border-violet-600 shadow-lg shadow-violet-200' : 'bg-slate-50 text-slate-600 hover:bg-white'}`}
                     >
                       <Calendar className={`h-3 w-3 ${isDateMenuOpen || (activeTab === 'issued' ? (issuedStartDate || issuedEndDate) : (returnStartDate || returnEndDate)) ? 'text-white' : 'text-slate-400'}`} />
                       <span>{activeTab === 'issued' ? (issuedStartDate || issuedEndDate ? `${issuedStartDate || '...'} - ${issuedEndDate || '...'}` : 'DATE') : (returnStartDate || returnEndDate ? `${returnStartDate || '...'} - ${returnEndDate || '...'}` : 'DATE')}</span>
@@ -1539,26 +1539,28 @@ const Inventory = () => {
             ) : (
               <>
                 {activeTab === 'issued' && shouldGroup && selectedPartyCard && (
-                  <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-100/80 sticky top-0 z-30 animate-in slide-in-from-top-2 duration-200">
-                    <button
-                      onClick={() => setSelectedPartyCard(null)}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-bold text-violet-600 border border-slate-200/50 hover:border-slate-200 transition-all select-none"
-                    >
-                      <ArrowLeft className="h-3.5 w-3.5" /> Back to Parties
-                    </button>
-                    <button
-                      onClick={handleGenerateReport}
-                      disabled={isReportGenerating}
-                      className="flex items-center gap-2 px-3.5 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-violet-100/50 hover:scale-[1.02] active:scale-95 select-none disabled:opacity-75"
-                    >
-                      {isReportGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />} Download Report
-                    </button>
-                    <span className="text-xs font-bold text-slate-500">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 px-3 sm:px-6 py-2.5 sm:py-4 bg-white border-b border-slate-100/80 sticky top-0 z-30 animate-in slide-in-from-top-2 duration-200">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => setSelectedPartyCard(null)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-bold text-violet-600 border border-slate-200/50 hover:border-slate-200 transition-all select-none"
+                      >
+                        <ArrowLeft className="h-3.5 w-3.5" /> Back to Parties
+                      </button>
+                      <button
+                        onClick={handleGenerateReport}
+                        disabled={isReportGenerating}
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-violet-100/50 hover:scale-[1.02] active:scale-95 select-none disabled:opacity-75"
+                      >
+                        {isReportGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />} Download Report
+                      </button>
+                    </div>
+                    <span className="text-xs font-bold text-slate-500 truncate max-w-full">
                       Showing records for: <strong className="text-slate-800">{selectedPartyCard}</strong>
                     </span>
                   </div>
                 )}
-                <table className="w-full text-center border-collapse border-separate border-spacing-0">
+                <table className="w-full text-center border-collapse border-separate border-spacing-0 min-w-[650px]">
                   <thead className="sticky top-0 z-20">
                     <tr className="bg-violet-50">
                       <th className="px-4 py-4 w-12 text-center bg-violet-50 border-b border-violet-100/50">
@@ -1722,22 +1724,22 @@ const Inventory = () => {
 
         {/* MODALS */}
         {(isIssueModalOpen || isReturnModalOpen) && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 backdrop-blur-sm bg-slate-900/40 animate-in fade-in duration-300">
-            <div className="relative w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-              <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between sticky top-0 z-10 bg-white">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-3">
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-3 sm:p-6 backdrop-blur-sm bg-slate-900/40 animate-in fade-in duration-300 overflow-y-auto">
+            <div className="relative w-full max-w-4xl bg-white rounded-2xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 my-auto max-h-[90vh] flex flex-col">
+              <div className="px-4 sm:px-8 py-4 sm:py-6 border-b border-slate-100 flex items-center justify-between sticky top-0 z-10 bg-white shrink-0">
+                <h2 className="text-base sm:text-xl font-bold text-slate-800 flex items-center gap-2 sm:gap-3">
                   <div className={`p-2 rounded-xl ${isIssueModalOpen ? 'bg-violet-100 text-violet-600' : 'bg-fuchsia-100 text-fuchsia-600'}`}>
                     {isIssueModalOpen ? <ClipboardList className="h-5 w-5" /> : <ArrowLeftRight className="h-5 w-5" />}
                   </div>
                   {isEditing ? (isIssueModalOpen ? 'Edit Issue Record' : 'Edit Return Record') : (isIssueModalOpen ? 'Issue Items to Party' : 'Return Items from Party')}
                 </h2>
-                <button onClick={() => { setIsIssueModalOpen(false); setIsReturnModalOpen(false); setIsEditing(false); }} className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 transition-all font-sans"><X className="h-5 w-5" /></button>
+                <button onClick={() => { setIsIssueModalOpen(false); setIsReturnModalOpen(false); setIsEditing(false); }} className="h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 transition-all font-sans"><X className="h-5 w-5" /></button>
               </div>
 
-              <form onSubmit={isIssueModalOpen ? handleIssueSubmit : handleReturnSubmit} className="px-7 py-5 space-y-4 max-h-[75vh] overflow-y-auto custom-scrollbar font-sans">
+              <form onSubmit={isIssueModalOpen ? handleIssueSubmit : handleReturnSubmit} className="px-4 sm:px-7 py-4 sm:py-5 space-y-4 flex-1 overflow-y-auto custom-scrollbar font-sans">
 
                 {isIssueModalOpen && (
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-violet-600 uppercase tracking-wide">For *</label>
                       <select
@@ -1833,7 +1835,7 @@ const Inventory = () => {
                 )}
 
                 {isReturnModalOpen && isEditing && (
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Party-Month</label>
                       <div className="w-full h-11 px-4 rounded-lg border border-slate-200 bg-slate-50 flex items-center text-sm font-medium text-slate-500">{returnForm.partyName || '-'}</div>
@@ -1850,7 +1852,7 @@ const Inventory = () => {
                 )}
 
                 {isReturnModalOpen && !isEditing && (
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Party-Month *</label>
                       <input type="text" value={returnForm.partyName} onChange={(e) => setReturnForm(p => ({ ...p, partyName: e.target.value }))} placeholder="e.g. May 2026" required className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white" />
@@ -1934,13 +1936,13 @@ const Inventory = () => {
                 )}
 
                 {isIssueModalOpen ? (
-                  <div className="grid grid-cols-4 gap-4 p-4 bg-slate-50 border border-slate-100 rounded-xl shadow-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-4 bg-slate-50 border border-slate-100 rounded-xl shadow-sm">
                     {[
                       { label: 'Department', val: issueForm.department },
                       { label: 'Opening Bal', val: (issueForm.openingBalance !== undefined && issueForm.openingBalance !== '') ? issueForm.openingBalance : '-' },
                       { label: 'Last Issue', val: validationState.committed || '0' }
                     ].map((f, i) => (
-                      <div key={i} className="space-y-1.5 flex-1 min-w-[22%]">
+                      <div key={i} className="space-y-1">
                         <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block ml-1">{f.label}</label>
                         <div className="h-10 flex items-center bg-white/50 px-3 rounded-lg border border-slate-200/50 text-xs font-bold text-slate-500 truncate">{f.val}</div>
                       </div>
@@ -2013,7 +2015,7 @@ const Inventory = () => {
 
                 {isIssueModalOpen && (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                       <div className="space-y-1 relative" ref={partyDropdownRef}>
                         <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Party Name *</label>
                         <div className="relative">
@@ -2068,7 +2070,7 @@ const Inventory = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                       <div className="space-y-1">
                         <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Venue Name</label>
                         <input type="text" value={issueForm.foodName} onChange={(e) => setIssueForm(p => ({ ...p, foodName: e.target.value }))} placeholder="Enter venue..." className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 text-sm font-medium" />
@@ -2108,7 +2110,7 @@ const Inventory = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                       <div className="space-y-1">
                         <label className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Estimated Cost</label>
                         <div className="w-full h-11 px-4 rounded-lg border border-emerald-100 bg-emerald-50/30 flex items-center text-sm font-bold text-emerald-700 shadow-sm">
@@ -2144,7 +2146,7 @@ const Inventory = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div className="space-y-1">
                         <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Preview</label>
                         <div className="p-2 bg-white border border-slate-100 rounded-xl shadow-sm h-28 flex items-center justify-center">
@@ -2171,24 +2173,24 @@ const Inventory = () => {
 
                 {isReturnModalOpen && (
                   <>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div className="space-y-1"><label className="text-xs font-bold text-fuchsia-600 uppercase tracking-wide">Return Date *</label><input type="date" value={returnForm.returnDate} onChange={(e) => setReturnForm(p => ({ ...p, returnDate: e.target.value }))} required className="w-full h-11 px-4 rounded-lg border-2 border-fuchsia-100 focus:border-fuchsia-500 text-sm font-medium" /></div>
                       <div className="space-y-1"><label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Issue Quantity</label><div className="h-11 flex items-center bg-slate-50/50 px-4 rounded-lg border border-slate-200 text-sm font-bold text-slate-400 italic">{returnForm.issueQty || '0'}</div></div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                       <div className="space-y-1"><label className="text-xs font-bold text-red-500 uppercase tracking-wide">Damage *</label><input type="number" onWheel={(e) => e.target.blur()} value={returnForm.damageItems} onChange={(e) => setReturnForm(p => ({ ...p, damageItems: e.target.value }))} required className="w-full h-11 px-4 rounded-lg border border-red-100 focus:border-red-500 text-sm font-medium text-red-700 bg-red-50/20" /></div>
                       <div className="space-y-1"><label className="text-xs font-bold text-orange-500 uppercase tracking-wide">Missing *</label><input type="number" onWheel={(e) => e.target.blur()} value={returnForm.missingItems} onChange={(e) => setReturnForm(p => ({ ...p, missingItems: e.target.value }))} required className="w-full h-11 px-4 rounded-lg border border-orange-100 focus:border-orange-500 text-sm font-medium text-orange-700 bg-orange-50/20" /></div>
                       <div className="space-y-1"><label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Damage Rate (₹)</label><div className="h-11 flex items-center bg-slate-50/50 px-4 rounded-lg border border-slate-200 text-sm font-bold text-slate-400 italic">{returnForm.damageRate || '0'}</div></div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                       <div className="space-y-1"><label className="text-xs font-bold text-fuchsia-400 uppercase tracking-wide">Return Qty (Calc)</label><div className="h-11 flex items-center bg-fuchsia-50/10 px-4 rounded-lg border border-fuchsia-100 text-sm font-bold text-fuchsia-400 italic">{returnForm.returnData || '0'}</div></div>
                       <div className="space-y-1"><label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Renting Rate (₹)</label><div className="h-11 flex items-center bg-slate-50/50 px-4 rounded-lg border border-slate-200 text-sm font-bold text-slate-400 italic">{returnForm.rentingRate || '0'}</div></div>
                       <div className="space-y-1"><label className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Total Cost (₹)</label><div className="h-11 flex items-center bg-emerald-50 px-4 rounded-lg border border-emerald-200 text-sm font-black text-emerald-700 shadow-inner-sm">₹{returnForm.totalCost || '0.00'}</div></div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div className="space-y-1">
                         <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Image Attachment</label>
                         <div className="h-11"><input type="file" id="return-upload" onChange={handleImageChange} className="hidden" accept="image/*" /><label htmlFor="return-upload" className="flex items-center justify-between px-3 h-full rounded-lg border border-slate-200 hover:border-fuchsia-400 bg-white cursor-pointer"><div className="flex items-center gap-3 truncate"><UploadCloud className="h-4 w-4 text-slate-300" /><span>{selectedImage ? "New File" : "Upload Image"}</span></div><div className="px-1.5 py-0.5 rounded bg-slate-100 text-[9px] font-bold text-slate-400 uppercase tracking-tighter shrink-0">Browse</div></label></div>

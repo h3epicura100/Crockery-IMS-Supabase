@@ -121,80 +121,82 @@ export default function Settings() {
 
   return (
     <AdminLayout>
-      <div className="min-h-[calc(100vh-42px)] bg-[#f0f2f8] font-sans px-8 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Settings</h1>
+      <div className="min-h-[calc(100vh-42px)] bg-[#f0f2f8] font-sans px-3 sm:px-8 py-4 sm:py-6">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-3xl font-bold text-slate-900 tracking-tight">Settings</h1>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <UserCog className="h-4 w-4 text-violet-600" />
               <h3 className="text-sm font-bold text-slate-800">User Accounts</h3>
             </div>
             <button
               onClick={openAdd}
-              className="h-9 px-4 rounded-xl bg-violet-600 text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-violet-700 transition-all"
+              className="h-9 px-3.5 sm:px-4 rounded-xl bg-violet-600 text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-violet-700 transition-all"
             >
               <Plus className="h-3.5 w-3.5" /> Add User
             </button>
           </div>
 
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-violet-50">
-              <tr>
-                {["Name", "Username", "Password", "Role", ""].map(h => (
-                  <th key={h} className="px-6 py-3 text-[10px] font-bold text-violet-600 uppercase tracking-widest border-b border-violet-100">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? (
-                <tr><td colSpan={5} className="px-6 py-16 text-center text-slate-400 text-xs font-bold uppercase">Loading…</td></tr>
-              ) : users.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-16 text-center text-slate-400 text-xs font-bold uppercase">No users found</td></tr>
-              ) : (
-                users.map(u => (
-                  <tr key={u.id} className="hover:bg-slate-50/50">
-                    <td className="px-6 py-3 text-xs font-bold text-slate-900">{u.name || "-"}</td>
-                    <td className="px-6 py-3 text-xs text-slate-600">{u.username}</td>
-                    <td className="px-6 py-3 text-xs text-slate-600 font-mono">
-                      <div className="flex items-center gap-2">
-                        <span>{showPassword[u.id] ? u.password : "••••••••"}</span>
-                        <button onClick={() => setShowPassword(p => ({ ...p, [u.id]: !p[u.id] }))} className="text-slate-300 hover:text-violet-500">
-                          {showPassword[u.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-6 py-3">
-                      <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${u.role === "admin" ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-500"}`}>
-                        {u.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3">
-                      <div className="flex items-center gap-1 justify-end">
-                        <button onClick={() => openEdit(u)} className="p-2 rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-all">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(u)}
-                          disabled={deletingId === u.id}
-                          className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-40"
-                        >
-                          {deletingId === u.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[500px]">
+              <thead className="bg-violet-50">
+                <tr>
+                  {["Name", "Username", "Password", "Role", ""].map(h => (
+                    <th key={h} className="px-4 sm:px-6 py-3 text-[10px] font-bold text-violet-600 uppercase tracking-widest border-b border-violet-100">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {loading ? (
+                  <tr><td colSpan={5} className="px-6 py-16 text-center text-slate-400 text-xs font-bold uppercase">Loading…</td></tr>
+                ) : users.length === 0 ? (
+                  <tr><td colSpan={5} className="px-6 py-16 text-center text-slate-400 text-xs font-bold uppercase">No users found</td></tr>
+                ) : (
+                  users.map(u => (
+                    <tr key={u.id} className="hover:bg-slate-50/50">
+                      <td className="px-4 sm:px-6 py-3 text-xs font-bold text-slate-900">{u.name || "-"}</td>
+                      <td className="px-4 sm:px-6 py-3 text-xs text-slate-600">{u.username}</td>
+                      <td className="px-4 sm:px-6 py-3 text-xs text-slate-600 font-mono">
+                        <div className="flex items-center gap-2">
+                          <span>{showPassword[u.id] ? u.password : "••••••••"}</span>
+                          <button onClick={() => setShowPassword(p => ({ ...p, [u.id]: !p[u.id] }))} className="text-slate-300 hover:text-violet-500">
+                            {showPassword[u.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3">
+                        <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${u.role === "admin" ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-500"}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3">
+                        <div className="flex items-center gap-1 justify-end">
+                          <button onClick={() => openEdit(u)} className="p-2 rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-all">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(u)}
+                            disabled={deletingId === u.id}
+                            className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-40"
+                          >
+                            {deletingId === u.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {isModalOpen && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-4 sm:p-6 max-h-[90vh] flex flex-col">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-lg font-bold text-slate-900">{form.id ? "Edit User" : "Add User"}</h3>
                 <button onClick={() => setIsModalOpen(false)}><X className="h-5 w-5 text-slate-400" /></button>

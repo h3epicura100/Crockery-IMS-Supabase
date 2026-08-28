@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { User, Lock, Eye, EyeOff, Zap } from "lucide-react"
+import { User, Lock, Eye, EyeOff } from "lucide-react"
 import { supabase } from "../utils/supabaseClient"
 import { TABLES, COLUMNS } from "../utils/dbSchema"
 
@@ -69,15 +69,15 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 p-3 sm:p-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-violet-100 p-1">
-        <div className="bg-white rounded-2xl p-6 shadow-inner">
-          {/* Header with Icon */}
+        <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-inner">
+          {/* Header with Company Logo */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-violet-600 to-fuchsia-500 rounded-full mb-4 shadow-lg shadow-violet-200">
-              <Zap className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-2xl mb-3 sm:mb-4 shadow-md border border-violet-100 p-2 overflow-hidden">
+              <img src="/H3-logo.svg" alt="Company Logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-800 to-fuchsia-600 bg-clip-text text-transparent mb-2">Cutlery Crockery</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-violet-800 to-fuchsia-600 bg-clip-text text-transparent mb-2">Cutlery Crockery</h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

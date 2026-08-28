@@ -148,16 +148,6 @@ export default function AdminLayout({ children }) {
         <SidebarContent />
       </aside>
 
-      {/* Mobile Menu Button */}
-      <div className="md:hidden fixed top-6 right-6 z-[60]">
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="h-12 w-12 rounded-2xl bg-white shadow-2xl border border-violet-100 flex items-center justify-center text-slate-600 active:scale-95 transition-all"
-        >
-          {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-      </div>
-
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-50">
@@ -173,6 +163,17 @@ export default function AdminLayout({ children }) {
 
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Mobile Navigation Header */}
+        <header className="md:hidden h-14 bg-white border-b border-violet-100 px-4 flex items-center justify-between shrink-0 z-30 shadow-xs">
+          <span className="text-base font-bold text-slate-800 tracking-tight">Crockery Cutlery</span>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="h-9 w-9 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center text-slate-700 active:scale-95 transition-all"
+            aria-label="Toggle Menu"
+          >
+            {isMobileMenuOpen ? <X className="h-4.5 w-4.5" /> : <Menu className="h-4.5 w-4.5" />}
+          </button>
+        </header>
         <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#f5f3ff] pb-12">
           <div className="w-full">
             {children}

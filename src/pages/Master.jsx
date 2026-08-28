@@ -292,21 +292,17 @@ export default function Master() {
 
   return (
     <AdminLayout>
-      <div className="min-h-[calc(100vh-42px)] bg-[#f0f2f8] font-sans px-8 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Master Data</h1>
-        </div>
-
+      <div className="min-h-[calc(100vh-42px)] bg-[#f0f2f8] font-sans px-3 sm:px-8 py-4 sm:py-6">
         <div className="flex gap-1 mb-4">
           <button
             onClick={() => setActiveTab("items")}
-            className={`px-6 py-2.5 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === "items" ? "bg-white text-violet-600 border-x border-t border-slate-100" : "text-slate-400 hover:text-slate-600"}`}
+            className={`px-4 sm:px-6 py-2.5 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === "items" ? "bg-white text-violet-600 border-x border-t border-slate-100" : "text-slate-400 hover:text-slate-600"}`}
           >
             <Package className="h-3.5 w-3.5" /> Items
           </button>
           <button
             onClick={() => setActiveTab("dropdowns")}
-            className={`px-6 py-2.5 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === "dropdowns" ? "bg-white text-violet-600 border-x border-t border-slate-100" : "text-slate-400 hover:text-slate-600"}`}
+            className={`px-4 sm:px-6 py-2.5 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === "dropdowns" ? "bg-white text-violet-600 border-x border-t border-slate-100" : "text-slate-400 hover:text-slate-600"}`}
           >
             <ListTree className="h-3.5 w-3.5" /> Dropdowns
           </button>
@@ -314,9 +310,9 @@ export default function Master() {
 
         {activeTab === "items" && (
           <div className="bg-white rounded-xl rounded-tl-none border border-slate-100 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-slate-100">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="relative w-64">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-100">
+              <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                <div className="relative w-full sm:w-64">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                   <input
                     type="text"
@@ -350,14 +346,14 @@ export default function Master() {
 
               <button
                 onClick={openAddItem}
-                className="h-9 px-4 rounded-xl bg-violet-600 text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-violet-700 transition-all"
+                className="h-9 px-4 rounded-xl bg-violet-600 text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-violet-700 transition-all shrink-0 self-start sm:self-auto"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Item
               </button>
             </div>
 
-            <div className="max-h-[65vh] overflow-auto">
-              <table className="w-full text-left border-collapse">
+            <div className="max-h-[65vh] overflow-x-auto overflow-y-auto">
+              <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead className="sticky top-0 bg-violet-50 z-10">
                   <tr>
                     {["Image", "Item Name", "Type", "Department", "Unit", "Rental Price", "Damage Price", ""].map(h => (
@@ -431,7 +427,7 @@ export default function Master() {
         )}
 
         {activeTab === "dropdowns" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {[
               { title: "Inventory Types", category: DROPDOWN_CATEGORY.INVENTORY_TYPE, list: inventoryTypes, value: newInventoryType, setValue: setNewInventoryType },
               { title: "Departments", category: DROPDOWN_CATEGORY.DEPARTMENT, list: departments, value: newDepartment, setValue: setNewDepartment },
@@ -439,7 +435,7 @@ export default function Master() {
               { title: "Issuers", category: DROPDOWN_CATEGORY.ISSUER, list: issuers, value: newIssuer, setValue: setNewIssuer },
               { title: "Event Types", category: DROPDOWN_CATEGORY.EVENT_TYPE, list: eventTypes, value: newEventType, setValue: setNewEventType }
             ].map(col => (
-              <div key={col.category} className="bg-white rounded-xl rounded-tl-none border border-slate-100 shadow-sm p-5">
+              <div key={col.category} className="bg-white rounded-xl rounded-tl-none border border-slate-100 shadow-sm p-4 sm:p-5">
                 <h3 className="text-sm font-bold text-slate-800 mb-3">{col.title}</h3>
                 <div className="flex gap-2 mb-4">
                   <input
@@ -448,31 +444,31 @@ export default function Master() {
                     value={col.value}
                     onChange={(e) => col.setValue(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleAddDropdown(col.category, col.value, col.setValue)}
-                    className="h-9 flex-1 px-4 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 focus:ring-4 focus:ring-violet-500/5 outline-none text-xs text-slate-600 font-medium"
+                    className="h-9 flex-1 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 font-medium focus:border-violet-300 outline-none"
                   />
                   <button
                     onClick={() => handleAddDropdown(col.category, col.value, col.setValue)}
                     disabled={dropdownSaving}
-                    className="h-9 px-4 rounded-xl bg-violet-600 text-white flex items-center gap-1 text-[10px] font-black uppercase tracking-widest hover:bg-violet-700 disabled:opacity-50"
+                    className="h-9 px-3 rounded-xl bg-violet-600 text-white text-xs font-bold hover:bg-violet-700 transition-all flex items-center justify-center shrink-0"
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="space-y-1 max-h-80 overflow-y-auto">
+                <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
                   {dropdownsLoading ? (
-                    <p className="text-xs text-slate-400 font-bold uppercase text-center py-6">Loading…</p>
+                    <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest text-center py-4">Loading…</p>
                   ) : col.list.length === 0 ? (
-                    <p className="text-xs text-slate-400 font-bold uppercase text-center py-6">No entries yet</p>
+                    <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest text-center py-4">No entries</p>
                   ) : (
                     col.list.map(opt => (
-                      <div key={opt.id} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50">
+                      <div key={opt.id} className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100/70 transition-colors">
                         <span className="text-xs font-semibold text-slate-700">{opt.value}</span>
                         <button
-                          onClick={() => handleDeleteDropdown(opt)}
+                          onClick={() => handleDeleteDropdown(opt.id, opt.value)}
                           disabled={deletingDropdownId === opt.id}
-                          className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-40"
+                          className="p-1 rounded-lg text-slate-300 hover:text-red-500 hover:bg-white transition-all disabled:opacity-40"
                         >
-                          {deletingDropdownId === opt.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                          {deletingDropdownId === opt.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3.5 w-3.5" />}
                         </button>
                       </div>
                     ))
@@ -484,8 +480,8 @@ export default function Master() {
         )}
 
         {isItemModalOpen && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 my-auto max-h-[90vh] flex flex-col">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-4 sm:p-6 my-auto max-h-[90vh] flex flex-col">
               <div className="flex items-center justify-between mb-4 shrink-0">
                 <h3 className="text-lg font-bold text-slate-900">{itemForm.id ? "Edit Item" : "Add Item"}</h3>
                 <button onClick={() => setIsItemModalOpen(false)}><X className="h-5 w-5 text-slate-400" /></button>
@@ -504,7 +500,7 @@ export default function Master() {
                   <input value={itemForm.item_name} onChange={(e) => setItemForm(p => ({ ...p, item_name: e.target.value }))}
                     className="mt-1 h-10 w-full px-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 outline-none text-sm" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Inventory Type</label>
                     <select value={itemForm.inventory_type} onChange={(e) => setItemForm(p => ({ ...p, inventory_type: e.target.value, department: "" }))}
@@ -522,7 +518,7 @@ export default function Master() {
                     </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Unit</label>
                     <select value={itemForm.unit} onChange={(e) => setItemForm(p => ({ ...p, unit: e.target.value }))}
