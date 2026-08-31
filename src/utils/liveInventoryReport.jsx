@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { loadImageAsBase64 } from './imageBase64';
+import { loadImagesBatched } from './imageBase64';
 
 // PDF column metadata per Dashboard "Today" column key: header label, relative width
 // weight (widths are distributed proportionally across the printable page width) and
@@ -44,7 +44,7 @@ const getItemValue = (item, key, idx) => {
  * Generates and downloads an A4 PDF of the Dashboard "Today" inventory table,
  * honoring the user's current column-visibility toggles and any active
  * search/filter selections, including item images (fetched as base64 from
- * Drive via the Apps Script backend, same as the Inventory page's party report).
+ * Supabase Storage).
  *
  * @param {Object} opts
  * @param {Array<Object>} opts.data - Rows to export, already filtered/searched (Dashboard's filteredData)
@@ -90,13 +90,15 @@ export const generateLiveInventoryReport = async ({
     };
   });
 
-  // Preload every distinct image once (deduped by URL) before drawing the table.
-  const imageMap = {};
+  // Preload images in batches to prevent UI lockup & memory overflow
+  let imageMap = {};
   if (hasImageCol) {
-    const urls = [...new Set(data.map(item => item.imageUrl).filter(url => url && url !== 'No Image'))];
-    const results = await Promise.all(urls.map(async (url) => ({ url, b64: await loadImageAsBase64(url) })));
-    results.forEach(({ url, b64 }) => { if (b64) imageMap[url] = b64; });
+    const urls = data.map(item => item.imageUrl);
+    imageMap = await loadImagesBatched(urls, 12);
   }
+
+  // Yield to browser before starting heavy autoTable layout
+  await new Promise(r => setTimeout(r, 20));
 
   const columns = activeCols.map(col => ({ header: COLUMN_DEFS[col.key].header, dataKey: col.key }));
   const body = data.map((item, idx) => {

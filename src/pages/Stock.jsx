@@ -24,7 +24,7 @@ import AdminLayout from "../components/layout/AdminLayout";
 import { formatDate, parseRowDate, formatIndianAmount, normalizeForMatch } from "../utils/helpers";
 import { supabase } from "../utils/supabaseClient";
 import { uploadImage } from "../utils/supabaseStorage";
-import { loadImageAsBase64 } from "../utils/imageBase64";
+import { loadImageAsBase64, loadImagesBatched } from "../utils/imageBase64";
 import { TABLES, COLUMNS, ENUMS, DROPDOWN_CATEGORY, withItemMaster } from "../utils/dbSchema";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -338,6 +338,17 @@ export default function Stock() {
     return [...new Set(filtered.map(row => row.inventory_type).filter(Boolean))].sort();
   }, [historyToDisplay, searchTerm, filterDept, filterItem]);
 
+  const deptOptions = useMemo(() => {
+    const s = normalizeForMatch(searchTerm);
+    const filtered = historyToDisplay.filter(row => {
+      const matchesSearch = !s || normalizeForMatch(row.item_name).includes(s) || normalizeForMatch(row.vendor_name).includes(s);
+      const matchesType = !filterType || row.inventory_type === filterType;
+      const matchesItem = !filterItem || row.item_name === filterItem;
+      return matchesSearch && matchesType && matchesItem;
+    });
+    return [...new Set(filtered.map(row => row.department).filter(Boolean))].sort();
+  }, [historyToDisplay, searchTerm, filterType, filterItem]);
+
   const itemOptions = useMemo(() => {
     const s = normalizeForMatch(searchTerm);
     const filtered = historyToDisplay.filter(row => {
@@ -460,11 +471,11 @@ export default function Stock() {
           colStyles[col.dataKey] = { cellWidth: col.dataKey === 'image' ? unitWidth * imgWeight : unitWidth * otherWeight };
         });
 
-        const imageMap = {};
+        let imageMap = {};
         if (visibleColumns.image) {
-          const uniqueUrls = [...new Set(filteredStockRows.map(row => getItemImage(row)).filter(Boolean))];
-          const results = await Promise.all(uniqueUrls.map(async (url) => ({ url, b64: await loadImageAsBase64(getDisplayableImageUrl(url)) })));
-          results.forEach(({ url, b64 }) => { if (b64) imageMap[url] = b64; });
+          const rawUrls = filteredStockRows.map(row => getItemImage(row)).filter(Boolean);
+          const displayUrls = rawUrls.map(u => getDisplayableImageUrl(u));
+          imageMap = await loadImagesBatched(displayUrls, 12);
         }
 
         const isPurchase = activeTab === 'purchase';
@@ -493,6 +504,9 @@ export default function Stock() {
 
         doc.text(`${totalCostStr}    ${dateRangeStr}`, 14, 16);
 
+        // Yield slightly so UI updates
+        await new Promise(r => setTimeout(r, 20));
+
         autoTable(doc, {
           startY: 22,
           columns: reportColumns,
@@ -510,15 +524,15 @@ export default function Stock() {
           didDrawCell: (data) => {
             if (data.column.dataKey === 'image' && data.cell.section === 'body') {
               const url = data.cell.raw;
-              const b64 = imageMap[url];
+              const dispUrl = getDisplayableImageUrl(url);
+              const b64 = imageMap[dispUrl] || imageMap[url];
               if (b64) {
                 const padding = 1;
                 const imgSize = Math.min(data.cell.width - padding * 2, data.cell.height - padding * 2, 8);
                 const x = data.cell.x + (data.cell.width - imgSize) / 2;
                 const y = data.cell.y + (data.cell.height - imgSize) / 2;
                 try {
-                  const fmt = b64.includes('image/png') ? 'PNG' : 'JPEG';
-                  doc.addImage(b64, fmt, x, y, imgSize, imgSize);
+                  doc.addImage(b64, 'JPEG', x, y, imgSize, imgSize);
                 } catch {
                   try { doc.addImage(b64, x, y, imgSize, imgSize); } catch {}
                 }
@@ -538,11 +552,12 @@ export default function Stock() {
         doc.save(`${isPurchase ? 'Purchase' : 'Re-Purchase'}_History_${new Date().toISOString().split('T')[0]}.pdf`);
         showToast('Report generated successfully');
       } catch (err) {
+        console.error("Stock PDF Generation Error:", err);
         showToast('Failed to generate report', 'error');
       } finally {
         setIsReportGenerating(false);
       }
-    }, 100);
+    }, 50);
   };
 
   // Items eligible for the Add Stock item picker: existing catalog items
@@ -822,6 +837,16 @@ export default function Stock() {
                   >
                     <option value="">All Types</option>
                     {typeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+
+                  <select
+                    value={filterDept}
+                    onChange={(e) => setFilterDept(e.target.value)}
+                    className="h-8 pl-2 pr-6 bg-white border border-slate-200 rounded-xl text-[10px] font-bold text-slate-600 appearance-none cursor-pointer hover:border-violet-300 transition-all max-w-[105px] truncate"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
+                  >
+                    <option value="">All Depts</option>
+                    {deptOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
 
                   <select

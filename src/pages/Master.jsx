@@ -104,10 +104,53 @@ export default function Master() {
   }, [fetchItems, fetchDropdowns]);
 
   const [filterType, setFilterType] = useState("");
+  const [filterDept, setFilterDept] = useState("");
+  const [filterItem, setFilterItem] = useState("");
 
   const typeOptions = useMemo(() => {
-    return [...new Set(items.map(i => i.inventory_type).filter(Boolean))].sort();
-  }, [items]);
+    const s = normalizeForMatch(itemSearch);
+    const filtered = items.filter(i => {
+      const matchesSearch = !s || (
+        normalizeForMatch(i.item_name).includes(s) ||
+        normalizeForMatch(i.inventory_type).includes(s) ||
+        normalizeForMatch(i.department).includes(s)
+      );
+      const matchesDept = !filterDept || i.department === filterDept;
+      const matchesItem = !filterItem || i.item_name === filterItem;
+      return matchesSearch && matchesDept && matchesItem;
+    });
+    return [...new Set(filtered.map(i => i.inventory_type).filter(Boolean))].sort();
+  }, [items, itemSearch, filterDept, filterItem]);
+
+  const deptOptions = useMemo(() => {
+    const s = normalizeForMatch(itemSearch);
+    const filtered = items.filter(i => {
+      const matchesSearch = !s || (
+        normalizeForMatch(i.item_name).includes(s) ||
+        normalizeForMatch(i.inventory_type).includes(s) ||
+        normalizeForMatch(i.department).includes(s)
+      );
+      const matchesType = !filterType || i.inventory_type === filterType;
+      const matchesItem = !filterItem || i.item_name === filterItem;
+      return matchesSearch && matchesType && matchesItem;
+    });
+    return [...new Set(filtered.map(i => i.department).filter(Boolean))].sort();
+  }, [items, itemSearch, filterType, filterItem]);
+
+  const itemOptions = useMemo(() => {
+    const s = normalizeForMatch(itemSearch);
+    const filtered = items.filter(i => {
+      const matchesSearch = !s || (
+        normalizeForMatch(i.item_name).includes(s) ||
+        normalizeForMatch(i.inventory_type).includes(s) ||
+        normalizeForMatch(i.department).includes(s)
+      );
+      const matchesType = !filterType || i.inventory_type === filterType;
+      const matchesDept = !filterDept || i.department === filterDept;
+      return matchesSearch && matchesType && matchesDept;
+    });
+    return [...new Set(filtered.map(i => i.item_name).filter(Boolean))].sort();
+  }, [items, itemSearch, filterType, filterDept]);
 
   const filteredItems = useMemo(() => {
     const s = normalizeForMatch(itemSearch);
@@ -118,9 +161,20 @@ export default function Master() {
         normalizeForMatch(i.department).includes(s)
       );
       const matchesType = !filterType || i.inventory_type === filterType;
-      return matchesSearch && matchesType;
+      const matchesDept = !filterDept || i.department === filterDept;
+      const matchesItem = !filterItem || i.item_name === filterItem;
+      return matchesSearch && matchesType && matchesDept && matchesItem;
     });
-  }, [items, itemSearch, filterType]);
+  }, [items, itemSearch, filterType, filterDept, filterItem]);
+
+  const hasActiveFilters = Boolean(filterType || filterDept || filterItem || itemSearch);
+
+  const clearAllFilters = () => {
+    setFilterType("");
+    setFilterDept("");
+    setFilterItem("");
+    setItemSearch("");
+  };
 
   const issuers = useMemo(() => dropdowns.filter(d => d.category === DROPDOWN_CATEGORY.ISSUER), [dropdowns]);
   const eventTypes = useMemo(() => dropdowns.filter(d => d.category === DROPDOWN_CATEGORY.EVENT_TYPE), [dropdowns]);
@@ -311,8 +365,8 @@ export default function Master() {
         {activeTab === "items" && (
           <div className="bg-white rounded-xl rounded-tl-none border border-slate-100 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-100">
-              <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                <div className="relative w-full sm:w-64">
+              <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                <div className="relative w-full sm:w-56">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                   <input
                     type="text"
@@ -326,17 +380,38 @@ export default function Master() {
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="h-9 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer min-w-[130px]"
+                  className="h-9 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer max-w-[130px] truncate"
                   style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '12px' }}
                 >
                   <option value="">All Types</option>
                   {typeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
 
-                {filterType && (
+                <select
+                  value={filterDept}
+                  onChange={(e) => setFilterDept(e.target.value)}
+                  className="h-9 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer max-w-[150px] truncate"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '12px' }}
+                >
+                  <option value="">All Departments</option>
+                  {deptOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+
+                <select
+                  value={filterItem}
+                  onChange={(e) => setFilterItem(e.target.value)}
+                  className="h-9 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer max-w-[150px] truncate"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '12px' }}
+                >
+                  <option value="">All Items</option>
+                  {itemOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+
+                {hasActiveFilters && (
                   <button
-                    onClick={() => setFilterType("")}
+                    onClick={clearAllFilters}
                     className="h-9 px-3 hover:bg-red-50 text-red-500 rounded-xl transition-colors flex items-center gap-1 text-xs font-bold"
+                    title="Clear all filters"
                   >
                     <X className="h-3.5 w-3.5" />
                     <span>Clear</span>

@@ -24,7 +24,7 @@ import PartyCard from '../components/layout/PartyCard';
 import { formatDate, toInputDate, parseRowDate, parseNumber, formatIndianAmount, cleanText, normalizeForMatch } from '../utils/helpers';
 import { supabase } from '../utils/supabaseClient';
 import { uploadImage } from '../utils/supabaseStorage';
-import { loadImageAsBase64 } from '../utils/imageBase64';
+import { loadImageAsBase64, loadImagesBatched } from '../utils/imageBase64';
 import { TABLES, COLUMNS, ENUMS, DROPDOWN_CATEGORY, STORAGE_FOLDERS, withItemMaster } from '../utils/dbSchema';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -476,10 +476,9 @@ const Inventory = () => {
           return match?.image_url && match.image_url !== 'No Image' ? match.image_url : null;
         };
 
-        const imageMap = {};
-        const imageList = [...new Set(rows.map(row => getItemImage(row)).filter(Boolean))];
-        const results = await Promise.all(imageList.map(async (url) => ({ url, b64: await loadImageAsBase64(getDisplayableImageUrl(url)) })));
-        results.forEach(({ url, b64 }) => { if (b64) imageMap[url] = b64; });
+        const rawUrls = rows.map(row => getItemImage(row)).filter(Boolean);
+        const displayUrls = rawUrls.map(u => getDisplayableImageUrl(u));
+        const imageMap = await loadImagesBatched(displayUrls, 12);
 
         const body = rows.map((row, index) => {
           const itemImg = getItemImage(row);
@@ -533,6 +532,9 @@ const Inventory = () => {
         drawLabelValue("Party: ", partyName, 14, 24);
         drawLabelValue("Event-Date: ", formatDate(rows[0].eventDate), 65, 24);
 
+        // Yield slightly so UI updates
+        await new Promise(r => setTimeout(r, 20));
+
         autoTable(doc, {
           startY: 30,
           columns: reportColumns,
@@ -566,7 +568,8 @@ const Inventory = () => {
           didDrawCell: (data) => {
             if (data.column.dataKey === 'image' && data.cell.section === 'body') {
               const url = data.cell.raw;
-              const b64 = imageMap[url];
+              const dispUrl = getDisplayableImageUrl(url);
+              const b64 = imageMap[dispUrl] || imageMap[url];
               if (b64) {
                 const padding = 1.5;
                 const imgSize = Math.min(data.cell.width - padding * 2, data.cell.height - padding * 2, 10);
@@ -575,7 +578,7 @@ const Inventory = () => {
                 try {
                   doc.addImage(b64, 'JPEG', x, y, imgSize, imgSize);
                 } catch {
-                  // ignore image render errors
+                  try { doc.addImage(b64, x, y, imgSize, imgSize); } catch {}
                 }
               }
             }
@@ -599,13 +602,14 @@ const Inventory = () => {
 
         doc.save(`${partyName}_Issue_Report_${new Date().toISOString().split('T')[0]}.pdf`);
         showToast('Report generated successfully');
-      } catch {
+      } catch (err) {
+        console.error("Party Report PDF Error:", err);
         showToast('Failed to generate report', 'error');
       } finally {
         setIsReportGenerating(false);
         setGeneratingReportParty(null);
       }
-    }, 100);
+    }, 50);
   };
 
   useEffect(() => {
@@ -1208,11 +1212,11 @@ const Inventory = () => {
           colStyles[col.dataKey] = { cellWidth: col.dataKey === 'image' ? unitWidth * imgWeight : unitWidth * otherWeight };
         });
 
-        const imageMap = {};
+        let imageMap = {};
         if (visibleColumns.image) {
-          const uniqueUrls = [...new Set(filteredReportData.map(row => getItemImage(row)).filter(Boolean))];
-          const results = await Promise.all(uniqueUrls.map(async (url) => ({ url, b64: await loadImageAsBase64(getDisplayableImageUrl(url)) })));
-          results.forEach(({ url, b64 }) => { if (b64) imageMap[url] = b64; });
+          const rawUrls = filteredReportData.map(row => getItemImage(row)).filter(Boolean);
+          const displayUrls = rawUrls.map(u => getDisplayableImageUrl(u));
+          imageMap = await loadImagesBatched(displayUrls, 12);
         }
 
         const title = `${isIssued ? 'ISSUED' : 'RETURN'} HISTORY REPORT`;
@@ -1246,6 +1250,9 @@ const Inventory = () => {
         doc.text(row2, 14, 21);
         currentY = 28;
 
+        // Yield slightly so UI updates
+        await new Promise(r => setTimeout(r, 20));
+
         autoTable(doc, {
           startY: currentY,
           columns: reportColumns,
@@ -1263,15 +1270,15 @@ const Inventory = () => {
           didDrawCell: (data) => {
             if (data.column.dataKey === 'image' && data.cell.section === 'body') {
               const url = data.cell.raw;
-              const b64 = imageMap[url];
+              const dispUrl = getDisplayableImageUrl(url);
+              const b64 = imageMap[dispUrl] || imageMap[url];
               if (b64) {
                 const padding = 1;
                 const imgSize = Math.min(data.cell.width - padding * 2, data.cell.height - padding * 2, 8);
                 const x = data.cell.x + (data.cell.width - imgSize) / 2;
                 const y = data.cell.y + (data.cell.height - imgSize) / 2;
                 try {
-                  const fmt = b64.includes('image/png') ? 'PNG' : 'JPEG';
-                  doc.addImage(b64, fmt, x, y, imgSize, imgSize);
+                  doc.addImage(b64, 'JPEG', x, y, imgSize, imgSize);
                 } catch {
                   try { doc.addImage(b64, x, y, imgSize, imgSize); } catch { /* ignore */ }
                 }
@@ -1290,12 +1297,13 @@ const Inventory = () => {
 
         doc.save(`${isIssued ? 'Issued' : 'Return'}_History_${new Date().toISOString().split('T')[0]}.pdf`);
         showToast('Report generated successfully');
-      } catch {
+      } catch (err) {
+        console.error("History Report PDF Error:", err);
         showToast('Failed to generate report', 'error');
       } finally {
         setIsReportGenerating(false);
       }
-    }, 100);
+    }, 50);
   };
 
   return (
