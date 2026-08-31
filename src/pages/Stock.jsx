@@ -21,6 +21,7 @@ import {
   FileText
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
+import Pagination from "../components/Pagination";
 import { formatDate, parseRowDate, formatIndianAmount, normalizeForMatch } from "../utils/helpers";
 import { supabase } from "../utils/supabaseClient";
 import { uploadImage } from "../utils/supabaseStorage";
@@ -28,6 +29,8 @@ import { loadImageAsBase64, loadImagesBatched } from "../utils/imageBase64";
 import { TABLES, COLUMNS, ENUMS, DROPDOWN_CATEGORY, withItemMaster } from "../utils/dbSchema";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+
+const PAGE_SIZE = 50;
 
 export default function Stock() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -276,288 +279,372 @@ export default function Stock() {
     });
   };
 
-  const fetchStockRows = async (source, setter) => {
-    let all = [];
-    const pageSize = 1000;
-    for (let page = 0; ; page++) {
-      const { data, error } = await supabase
+  const [purchasePage, setPurchasePage] = useState(1);
+  const [purchaseCount, setPurchaseCount] = useState(0);
+  const [totalPurchaseCost, setTotalPurchaseCost] = useState(0);
+
+  const [repurchasePage, setRepurchasePage] = useState(1);
+  const [repurchaseCount, setRepurchaseCount] = useState(0);
+  const [totalRepurchaseCost, setTotalRepurchaseCost] = useState(0);
+
+  const fetchStockTotals = async (source) => {
+    try {
+      let query = supabase
         .from(TABLES.STOCK_TRANSACTIONS)
-        .select(`*, ${withItemMaster('item_name, inventory_type, department')}`)
-        .eq(COLUMNS.STOCK_TRANSACTIONS.SOURCE, source)
-        .order(COLUMNS.STOCK_TRANSACTIONS.CREATED_AT, { ascending: false })
-        .range(page * pageSize, page * pageSize + pageSize - 1);
-      if (error) { showToast(error.message, 'error'); break; }
-      all = all.concat(data || []);
-      if (!data || data.length < pageSize) break;
+        .select(`total_cost, qty, per_unit, ${withItemMaster('item_name, inventory_type, department')}`)
+        .eq(COLUMNS.STOCK_TRANSACTIONS.SOURCE, source);
+
+      if (filterType) query = query.filter('item_master.inventory_type', 'eq', filterType);
+      if (filterDept) query = query.filter('item_master.department', 'eq', filterDept);
+      if (filterItem) query = query.filter('item_master.item_name', 'eq', filterItem);
+      if (startDate) query = query.gte('created_at', `${startDate}T00:00:00`);
+      if (endDate) query = query.lte('created_at', `${endDate}T23:59:59`);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const sum = (data || []).reduce((acc, row) => {
+        const c = row.total_cost ?? ((parseFloat(row.qty) || 0) * (parseFloat(row.per_unit) || 0));
+        const val = parseFloat(c || 0);
+        return acc + (isNaN(val) ? 0 : val);
+      }, 0);
+
+      if (source === ENUMS.STOCK_SOURCE.ADD_STOCK) {
+        setTotalPurchaseCost(sum);
+      } else {
+        setTotalRepurchaseCost(sum);
+      }
+    } catch (err) {
+      console.error("Failed to fetch stock total cost:", err);
     }
-    setter(all.map(row => ({
-      id: row.id,
-      serial_no: row.serial_no,
-      created_at: row.created_at,
-      item_id: row.item_id,
-      inventory_type: row.item_master?.inventory_type,
-      department: row.item_master?.department,
-      item_name: row.item_master?.item_name,
-      vendor_name: row.vendor_name,
-      qty: row.qty,
-      unit: row.unit,
-      per_unit: row.per_unit,
-      total_cost: row.total_cost,
-      image_url: row.image_url,
-      remarks: row.remarks
-    })));
   };
 
-  const fetchStockData = async () => {
+  const fetchStockPage = async (source, page = 1) => {
     setIsTableLoading(true);
-    await Promise.all([
-      fetchStockRows(ENUMS.STOCK_SOURCE.ADD_STOCK, setStockRows),
-      fetchStockRows(ENUMS.STOCK_SOURCE.RE_PURCHASE, setRePurchaseRows)
-    ]);
-    setIsTableLoading(false);
+    try {
+      let query = supabase
+        .from(TABLES.STOCK_TRANSACTIONS)
+        .select(`*, ${withItemMaster('item_name, inventory_type, department')}`, { count: 'exact' })
+        .eq(COLUMNS.STOCK_TRANSACTIONS.SOURCE, source);
+
+      if (filterType) query = query.filter('item_master.inventory_type', 'eq', filterType);
+      if (filterDept) query = query.filter('item_master.department', 'eq', filterDept);
+      if (filterItem) query = query.filter('item_master.item_name', 'eq', filterItem);
+
+      if (startDate) query = query.gte('created_at', `${startDate}T00:00:00`);
+      if (endDate) query = query.lte('created_at', `${endDate}T23:59:59`);
+
+      query = query
+        .order(COLUMNS.STOCK_TRANSACTIONS.CREATED_AT, { ascending: false })
+        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+
+      const { data, count, error } = await query;
+      if (error) throw error;
+
+      const formatted = (data || []).map(row => ({
+        id: row.id,
+        serial_no: row.serial_no,
+        created_at: row.created_at,
+        item_id: row.item_id,
+        inventory_type: row.item_master?.inventory_type,
+        department: row.item_master?.department,
+        item_name: row.item_master?.item_name,
+        vendor_name: row.vendor_name,
+        qty: row.qty,
+        unit: row.unit,
+        per_unit: row.per_unit,
+        total_cost: row.total_cost,
+        image_url: row.image_url,
+        remarks: row.remarks
+      }));
+
+      if (source === ENUMS.STOCK_SOURCE.ADD_STOCK) {
+        setStockRows(formatted);
+        setPurchaseCount(count || 0);
+      } else {
+        setRePurchaseRows(formatted);
+        setRepurchaseCount(count || 0);
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setIsTableLoading(false);
+    }
+  };
+
+  const fetchStockData = () => {
+    const source = activeTab === 'purchase' ? ENUMS.STOCK_SOURCE.ADD_STOCK : ENUMS.STOCK_SOURCE.RE_PURCHASE;
+    const page = activeTab === 'purchase' ? purchasePage : repurchasePage;
+    fetchStockPage(source, page);
+    fetchStockTotals(source);
   };
 
   useEffect(() => {
     fetchItems();
     fetchDropdowns();
-    fetchStockData();
   }, []);
+
+  useEffect(() => {
+    setPurchasePage(1);
+    setRepurchasePage(1);
+  }, [filterType, filterDept, filterItem, startDate, endDate]);
+
+  useEffect(() => {
+    const source = activeTab === 'purchase' ? ENUMS.STOCK_SOURCE.ADD_STOCK : ENUMS.STOCK_SOURCE.RE_PURCHASE;
+    const page = activeTab === 'purchase' ? purchasePage : repurchasePage;
+    fetchStockPage(source, page);
+    fetchStockTotals(source);
+  }, [activeTab, purchasePage, repurchasePage, filterType, filterDept, filterItem, startDate, endDate]);
+
+  const typeOptions = useMemo(() => {
+    const filtered = items.filter(i => {
+      const matchesDept = !filterDept || i.department === filterDept;
+      const matchesItem = !filterItem || i.item_name === filterItem;
+      return matchesDept && matchesItem;
+    });
+    return [...new Set(filtered.map(i => i.inventory_type).filter(Boolean))].sort();
+  }, [items, filterDept, filterItem]);
+
+  const deptOptions = useMemo(() => {
+    const filtered = items.filter(i => {
+      const matchesType = !filterType || i.inventory_type === filterType;
+      const matchesItem = !filterItem || i.item_name === filterItem;
+      return matchesType && matchesItem;
+    });
+    return [...new Set(filtered.map(i => i.department).filter(Boolean))].sort();
+  }, [items, filterType, filterItem]);
+
+  const itemOptions = useMemo(() => {
+    const filtered = items.filter(i => {
+      const matchesType = !filterType || i.inventory_type === filterType;
+      const matchesDept = !filterDept || i.department === filterDept;
+      return matchesType && matchesDept;
+    });
+    return [...new Set(filtered.map(i => i.item_name).filter(Boolean))].sort();
+  }, [items, filterType, filterDept]);
 
   const historyToDisplay = useMemo(() => {
     return activeTab === 'purchase' ? stockRows : rePurchaseRows;
   }, [activeTab, stockRows, rePurchaseRows]);
 
-  const typeOptions = useMemo(() => {
-    const s = normalizeForMatch(searchTerm);
-    const filtered = historyToDisplay.filter(row => {
-      const matchesSearch = !s || normalizeForMatch(row.item_name).includes(s) || normalizeForMatch(row.vendor_name).includes(s);
-      const matchesDept = !filterDept || row.department === filterDept;
-      const matchesItem = !filterItem || row.item_name === filterItem;
-      return matchesSearch && matchesDept && matchesItem;
-    });
-    return [...new Set(filtered.map(row => row.inventory_type).filter(Boolean))].sort();
-  }, [historyToDisplay, searchTerm, filterDept, filterItem]);
-
-  const deptOptions = useMemo(() => {
-    const s = normalizeForMatch(searchTerm);
-    const filtered = historyToDisplay.filter(row => {
-      const matchesSearch = !s || normalizeForMatch(row.item_name).includes(s) || normalizeForMatch(row.vendor_name).includes(s);
-      const matchesType = !filterType || row.inventory_type === filterType;
-      const matchesItem = !filterItem || row.item_name === filterItem;
-      return matchesSearch && matchesType && matchesItem;
-    });
-    return [...new Set(filtered.map(row => row.department).filter(Boolean))].sort();
-  }, [historyToDisplay, searchTerm, filterType, filterItem]);
-
-  const itemOptions = useMemo(() => {
-    const s = normalizeForMatch(searchTerm);
-    const filtered = historyToDisplay.filter(row => {
-      const matchesSearch = !s || normalizeForMatch(row.item_name).includes(s) || normalizeForMatch(row.vendor_name).includes(s);
-      const matchesType = !filterType || row.inventory_type === filterType;
-      const matchesDept = !filterDept || row.department === filterDept;
-      return matchesSearch && matchesType && matchesDept;
-    });
-    return [...new Set(filtered.map(row => row.item_name).filter(Boolean))].sort();
-  }, [historyToDisplay, searchTerm, filterType, filterDept]);
-
   const filteredStockRows = useMemo(() => {
+    if (!searchTerm.trim()) return historyToDisplay;
     const s = normalizeForMatch(searchTerm);
-    return historyToDisplay.filter(row => {
-      const matchesSearch = !s ||
-        normalizeForMatch(row.item_name).includes(s) ||
-        normalizeForMatch(row.vendor_name).includes(s) ||
-        normalizeForMatch(row.serial_no).includes(s);
+    return historyToDisplay.filter(row =>
+      normalizeForMatch(row.item_name).includes(s) ||
+      normalizeForMatch(row.vendor_name).includes(s) ||
+      normalizeForMatch(row.serial_no).includes(s)
+    );
+  }, [historyToDisplay, searchTerm]);
 
-      const matchesType = !filterType || row.inventory_type === filterType;
-      const matchesDept = !filterDept || row.department === filterDept;
-      const matchesItem = !filterItem || row.item_name === filterItem;
-
-      let matchesDate = true;
-      if (startDate || endDate) {
-        const rowDate = parseRowDate(row.created_at);
-        if (!rowDate || isNaN(rowDate)) return true;
-        if (startDate) {
-          const start = new Date(startDate);
-          start.setHours(0, 0, 0, 0);
-          if (rowDate < start) matchesDate = false;
-        }
-        if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          if (rowDate > end) matchesDate = false;
-        }
-      }
-
-      return matchesSearch && matchesType && matchesDept && matchesItem && matchesDate;
-    });
-  }, [historyToDisplay, searchTerm, filterType, filterDept, filterItem, startDate, endDate]);
-
-  const totalStockCost = useMemo(() => {
-    return filteredStockRows.reduce((sum, row) => {
-      const val = parseFloat(row.total_cost || 0);
-      return sum + (isNaN(val) ? 0 : val);
-    }, 0);
-  }, [filteredStockRows]);
+  const totalStockCost = activeTab === 'purchase' ? totalPurchaseCost : totalRepurchaseCost;
 
   const [isReportGenerating, setIsReportGenerating] = useState(false);
 
-  const handleDownloadReport = () => {
-    if (filteredStockRows.length === 0) {
-      showToast('No records to export', 'info');
-      return;
-    }
-
-    const columnsToInclude = columnConfig.filter(col => visibleColumns[col.key] !== false);
-
-    const reportColumns = [
-      { header: 'S. No.', dataKey: 'sNo' },
-      ...columnsToInclude.map(col => ({ header: col.label, dataKey: col.key }))
-    ];
-
-    const getItemImage = (row) => {
-      if (row.image_url && row.image_url !== 'No Image') return row.image_url;
-      const match = items.find(i => i.id === row.item_id || i.item_name === row.item_name);
-      return match?.image_url && match.image_url !== 'No Image' ? match.image_url : null;
-    };
-
-    const body = filteredStockRows.map((row, index) => {
-      const rowData = { sNo: index + 1 };
-      columnsToInclude.forEach(col => {
-        if (col.key === 'image') {
-          rowData[col.key] = getItemImage(row) || '';
-        } else if (col.key === 'date') {
-          rowData[col.key] = formatDate(row.created_at);
-        } else if (col.key === 'perUnit') {
-          rowData[col.key] = `Rs ${parseFloat(row.per_unit || 0).toFixed(2)}`;
-        } else if (col.key === 'costPrice') {
-          const cPrice = row.total_cost ?? ((parseFloat(row.qty) || 0) * (parseFloat(row.per_unit) || 0));
-          rowData[col.key] = `Rs ${parseFloat(cPrice || 0).toFixed(2)}`;
-        } else if (col.key === 'balance') {
-          rowData[col.key] = row.qty || 0;
-        } else if (col.key === 'dept') {
-          rowData[col.key] = row.department || '-';
-        } else if (col.key === 'type') {
-          rowData[col.key] = row.inventory_type || '-';
-        } else if (col.key === 'item') {
-          rowData[col.key] = row.item_name || '-';
-        } else if (col.key === 'vendor') {
-          rowData[col.key] = row.vendor_name || '-';
-        } else if (col.key === 'remarks') {
-          rowData[col.key] = row.remarks || '-';
-        } else {
-          rowData[col.key] = row[col.key] || '-';
-        }
-      });
-      return rowData;
-    });
-
+  const handleDownloadReport = async () => {
     setIsReportGenerating(true);
 
-    setTimeout(async () => {
-      try {
-        const doc = new jsPDF('p', 'mm', 'a4');
-        const pageWidth = doc.internal.pageSize.width;
+    try {
+      const source = activeTab === 'purchase' ? ENUMS.STOCK_SOURCE.ADD_STOCK : ENUMS.STOCK_SOURCE.RE_PURCHASE;
+      let query = supabase
+        .from(TABLES.STOCK_TRANSACTIONS)
+        .select(`*, ${withItemMaster('item_name, inventory_type, department')}`)
+        .eq(COLUMNS.STOCK_TRANSACTIONS.SOURCE, source);
 
-        const colStyles = {};
-        const availableWidth = pageWidth - 12;
-        const colCount = reportColumns.length;
-        const hasImage = reportColumns.some(c => c.dataKey === 'image');
-        const imgWeight = 1.4;
-        const otherWeight = 1.0;
-        const totalWeight = hasImage ? (colCount - 1) * otherWeight + imgWeight : colCount * otherWeight;
-        const unitWidth = availableWidth / totalWeight;
+      if (filterType) query = query.filter('item_master.inventory_type', 'eq', filterType);
+      if (filterDept) query = query.filter('item_master.department', 'eq', filterDept);
+      if (filterItem) query = query.filter('item_master.item_name', 'eq', filterItem);
+      if (startDate) query = query.gte('created_at', `${startDate}T00:00:00`);
+      if (endDate) query = query.lte('created_at', `${endDate}T23:59:59`);
 
-        reportColumns.forEach(col => {
-          colStyles[col.dataKey] = { cellWidth: col.dataKey === 'image' ? unitWidth * imgWeight : unitWidth * otherWeight };
-        });
+      query = query.order(COLUMNS.STOCK_TRANSACTIONS.CREATED_AT, { ascending: false });
 
-        let imageMap = {};
-        if (visibleColumns.image) {
-          const rawUrls = filteredStockRows.map(row => getItemImage(row)).filter(Boolean);
-          const displayUrls = rawUrls.map(u => getDisplayableImageUrl(u));
-          imageMap = await loadImagesBatched(displayUrls, 12);
-        }
+      const { data, error } = await query;
+      if (error) throw error;
 
-        const isPurchase = activeTab === 'purchase';
-        const title = `${isPurchase ? 'PURCHASE' : 'RE-PURCHASE'} HISTORY REPORT`;
-        const countText = `(${body.length})`;
+      let allExportRows = (data || []).map(row => ({
+        id: row.id,
+        serial_no: row.serial_no,
+        created_at: row.created_at,
+        item_id: row.item_id,
+        inventory_type: row.item_master?.inventory_type,
+        department: row.item_master?.department,
+        item_name: row.item_master?.item_name,
+        vendor_name: row.vendor_name,
+        qty: row.qty,
+        unit: row.unit,
+        per_unit: row.per_unit,
+        total_cost: row.total_cost,
+        image_url: row.image_url,
+        remarks: row.remarks
+      }));
 
-        doc.setFontSize(14);
-        doc.setTextColor(124, 58, 237);
-        doc.text(title, 14, 10);
+      if (searchTerm.trim()) {
+        const s = normalizeForMatch(searchTerm);
+        allExportRows = allExportRows.filter(row =>
+          normalizeForMatch(row.item_name).includes(s) ||
+          normalizeForMatch(row.vendor_name).includes(s) ||
+          normalizeForMatch(row.serial_no).includes(s)
+        );
+      }
 
-        const titleWidth = doc.getTextWidth(title);
-        doc.setFontSize(9);
-        doc.setTextColor(150, 150, 150);
-        doc.text(countText, 14 + titleWidth + 2, 10);
+      if (allExportRows.length === 0) {
+        showToast('No records to export', 'info');
+        setIsReportGenerating(false);
+        return;
+      }
 
-        doc.setFontSize(7);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth - 14, 10, { align: 'right' });
+      const columnsToInclude = columnConfig.filter(col => visibleColumns[col.key] !== false);
 
-        doc.setFontSize(8);
-        doc.setTextColor(60, 60, 60);
-        doc.setFont(undefined, 'bold');
+      const reportColumns = [
+        { header: 'S. No.', dataKey: 'sNo' },
+        ...columnsToInclude.map(col => ({ header: col.label, dataKey: col.key }))
+      ];
 
-        const totalCostStr = `Total Cost: Rs ${totalStockCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        const dateRangeStr = (startDate || endDate) ? `Date Range: ${startDate || '...'} to ${endDate || '...'}` : 'Date Range: All Time';
+      const getItemImage = (row) => {
+        if (row.image_url && row.image_url !== 'No Image') return row.image_url;
+        const match = items.find(i => i.id === row.item_id || i.item_name === row.item_name);
+        return match?.image_url && match.image_url !== 'No Image' ? match.image_url : null;
+      };
 
-        doc.text(`${totalCostStr}    ${dateRangeStr}`, 14, 16);
-
-        // Yield slightly so UI updates
-        await new Promise(r => setTimeout(r, 20));
-
-        autoTable(doc, {
-          startY: 22,
-          columns: reportColumns,
-          body: body,
-          theme: 'grid',
-          columnStyles: colStyles,
-          headStyles: { fillColor: [109, 40, 217], textColor: 255, fontSize: 7, fontStyle: 'bold', halign: 'center', cellPadding: 2 },
-          styles: { fontSize: 6, cellPadding: 1.5, halign: 'center', valign: 'middle', overflow: 'ellipsize', minCellHeight: 11.5 },
-          alternateRowStyles: { fillColor: [249, 250, 251] },
-          rowPageBreak: 'avoid',
-          margin: { top: 14, right: 6, bottom: 20, left: 6 },
-          willDrawCell: (data) => {
-            if (data.column.dataKey === 'image' && data.cell.section === 'body') data.cell.text = [];
-          },
-          didDrawCell: (data) => {
-            if (data.column.dataKey === 'image' && data.cell.section === 'body') {
-              const url = data.cell.raw;
-              const dispUrl = getDisplayableImageUrl(url);
-              const b64 = imageMap[dispUrl] || imageMap[url];
-              if (b64) {
-                const padding = 1;
-                const imgSize = Math.min(data.cell.width - padding * 2, data.cell.height - padding * 2, 8);
-                const x = data.cell.x + (data.cell.width - imgSize) / 2;
-                const y = data.cell.y + (data.cell.height - imgSize) / 2;
-                try {
-                  doc.addImage(b64, 'JPEG', x, y, imgSize, imgSize);
-                } catch {
-                  try { doc.addImage(b64, x, y, imgSize, imgSize); } catch {}
-                }
-              }
-            }
-          },
-          didDrawPage: function () {
-            const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
-            doc.setFontSize(8);
-            doc.setTextColor(120);
-            doc.text(`Page ${pageNumber} of {total_pages_count_string}`, doc.internal.pageSize.width - 6, doc.internal.pageSize.height - 8, { align: 'right' });
+      const body = allExportRows.map((row, index) => {
+        const rowData = { sNo: index + 1 };
+        columnsToInclude.forEach(col => {
+          if (col.key === 'image') {
+            rowData[col.key] = getItemImage(row) || '';
+          } else if (col.key === 'date') {
+            rowData[col.key] = formatDate(row.created_at);
+          } else if (col.key === 'perUnit') {
+            rowData[col.key] = `Rs ${parseFloat(row.per_unit || 0).toFixed(2)}`;
+          } else if (col.key === 'costPrice') {
+            const cPrice = row.total_cost ?? ((parseFloat(row.qty) || 0) * (parseFloat(row.per_unit) || 0));
+            rowData[col.key] = `Rs ${parseFloat(cPrice || 0).toFixed(2)}`;
+          } else if (col.key === 'balance') {
+            rowData[col.key] = row.qty || 0;
+          } else if (col.key === 'dept') {
+            rowData[col.key] = row.department || '-';
+          } else if (col.key === 'type') {
+            rowData[col.key] = row.inventory_type || '-';
+          } else if (col.key === 'item') {
+            rowData[col.key] = row.item_name || '-';
+          } else if (col.key === 'vendor') {
+            rowData[col.key] = row.vendor_name || '-';
+          } else if (col.key === 'remarks') {
+            rowData[col.key] = row.remarks || '-';
+          } else {
+            rowData[col.key] = row[col.key] || '-';
           }
         });
+        return rowData;
+      });
 
-        if (typeof doc.putTotalPages === 'function') doc.putTotalPages('{total_pages_count_string}');
+      const totalCostAll = allExportRows.reduce((sum, row) => {
+        const val = parseFloat(row.total_cost || 0);
+        return sum + (isNaN(val) ? 0 : val);
+      }, 0);
 
-        doc.save(`${isPurchase ? 'Purchase' : 'Re-Purchase'}_History_${new Date().toISOString().split('T')[0]}.pdf`);
-        showToast('Report generated successfully');
-      } catch (err) {
-        console.error("Stock PDF Generation Error:", err);
-        showToast('Failed to generate report', 'error');
-      } finally {
-        setIsReportGenerating(false);
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.width;
+
+      const colStyles = {};
+      const availableWidth = pageWidth - 12;
+      const colCount = reportColumns.length;
+      const hasImage = reportColumns.some(c => c.dataKey === 'image');
+      const imgWeight = 1.4;
+      const otherWeight = 1.0;
+      const totalWeight = hasImage ? (colCount - 1) * otherWeight + imgWeight : colCount * otherWeight;
+      const unitWidth = availableWidth / totalWeight;
+
+      reportColumns.forEach(col => {
+        colStyles[col.dataKey] = { cellWidth: col.dataKey === 'image' ? unitWidth * imgWeight : unitWidth * otherWeight };
+      });
+
+      let imageMap = {};
+      if (visibleColumns.image) {
+        const rawUrls = allExportRows.map(row => getItemImage(row)).filter(Boolean);
+        const displayUrls = rawUrls.map(u => getDisplayableImageUrl(u));
+        imageMap = await loadImagesBatched(displayUrls, 12);
       }
-    }, 50);
+
+      const isPurchase = activeTab === 'purchase';
+      const title = `${isPurchase ? 'PURCHASE' : 'RE-PURCHASE'} HISTORY REPORT`;
+      const countText = `(${body.length})`;
+
+      doc.setFontSize(14);
+      doc.setTextColor(124, 58, 237);
+      doc.text(title, 14, 10);
+
+      const titleWidth = doc.getTextWidth(title);
+      doc.setFontSize(9);
+      doc.setTextColor(150, 150, 150);
+      doc.text(countText, 14 + titleWidth + 2, 10);
+
+      doc.setFontSize(7);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth - 14, 10, { align: 'right' });
+
+      doc.setFontSize(8);
+      doc.setTextColor(60, 60, 60);
+      doc.setFont(undefined, 'bold');
+
+      const totalCostStr = `Total Cost: Rs ${totalCostAll.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const dateRangeStr = (startDate || endDate) ? `Date Range: ${startDate || '...'} to ${endDate || '...'}` : 'Date Range: All Time';
+
+      doc.text(`${totalCostStr}    ${dateRangeStr}`, 14, 16);
+
+      // Yield slightly so UI updates
+      await new Promise(r => setTimeout(r, 20));
+
+      autoTable(doc, {
+        startY: 22,
+        columns: reportColumns,
+        body: body,
+        theme: 'grid',
+        columnStyles: colStyles,
+        headStyles: { fillColor: [109, 40, 217], textColor: 255, fontSize: 7, fontStyle: 'bold', halign: 'center', cellPadding: 2 },
+        styles: { fontSize: 6, cellPadding: 1.5, halign: 'center', valign: 'middle', overflow: 'ellipsize', minCellHeight: 11.5 },
+        alternateRowStyles: { fillColor: [249, 250, 251] },
+        rowPageBreak: 'avoid',
+        margin: { top: 14, right: 6, bottom: 20, left: 6 },
+        willDrawCell: (data) => {
+          if (data.column.dataKey === 'image' && data.cell.section === 'body') data.cell.text = [];
+        },
+        didDrawCell: (data) => {
+          if (data.column.dataKey === 'image' && data.cell.section === 'body') {
+            const url = data.cell.raw;
+            const dispUrl = getDisplayableImageUrl(url);
+            const b64 = imageMap[dispUrl] || imageMap[url];
+            if (b64) {
+              const padding = 1;
+              const imgSize = Math.min(data.cell.width - padding * 2, data.cell.height - padding * 2, 8);
+              const x = data.cell.x + (data.cell.width - imgSize) / 2;
+              const y = data.cell.y + (data.cell.height - imgSize) / 2;
+              try {
+                doc.addImage(b64, 'JPEG', x, y, imgSize, imgSize);
+              } catch {
+                try { doc.addImage(b64, x, y, imgSize, imgSize); } catch {}
+              }
+            }
+          }
+        },
+        didDrawPage: function () {
+          const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
+          doc.setFontSize(8);
+          doc.setTextColor(120);
+          doc.text(`Page ${pageNumber} of {total_pages_count_string}`, doc.internal.pageSize.width - 6, doc.internal.pageSize.height - 8, { align: 'right' });
+        }
+      });
+
+      if (typeof doc.putTotalPages === 'function') doc.putTotalPages('{total_pages_count_string}');
+
+      doc.save(`${isPurchase ? 'Purchase' : 'Re-Purchase'}_History_${new Date().toISOString().split('T')[0]}.pdf`);
+      showToast('Report generated successfully');
+    } catch (err) {
+      console.error("Stock PDF Generation Error:", err);
+      showToast('Failed to generate report', 'error');
+    } finally {
+      setIsReportGenerating(false);
+    }
   };
 
   // Items eligible for the Add Stock item picker: existing catalog items
@@ -977,11 +1064,11 @@ export default function Stock() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
+          <div className="max-h-[65vh] overflow-x-auto overflow-y-auto relative custom-scrollbar">
             <table className="w-full text-center border-collapse border-separate border-spacing-0 min-w-[650px]">
-              <thead className="sticky top-0 z-20">
-                <tr className="bg-violet-50 border-none shadow-sm">
-                  <th className="px-4 py-4 w-12 text-center bg-violet-50">
+              <thead className="sticky top-0 z-20 bg-violet-50">
+                <tr className="bg-violet-50">
+                  <th className="px-4 py-4 w-12 text-center bg-violet-50 border-b border-violet-100">
                     <input
                       type="checkbox"
                       className="w-4 h-4 rounded border-violet-300 text-violet-600 focus:ring-violet-500 cursor-pointer"
@@ -990,7 +1077,7 @@ export default function Stock() {
                     />
                   </th>
                   {columnConfig.map(col => visibleColumns[col.key] && (
-                    <th key={col.key} className="px-6 py-4 text-[10px] font-bold text-violet-600 whitespace-nowrap uppercase tracking-[0.15em] text-center bg-violet-50">
+                    <th key={col.key} className="px-6 py-4 text-[10px] font-bold text-violet-600 whitespace-nowrap uppercase tracking-[0.15em] text-center bg-violet-50 border-b border-violet-100">
                       {col.label}
                     </th>
                   ))}
@@ -1125,6 +1212,14 @@ export default function Stock() {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            currentPage={activeTab === 'purchase' ? purchasePage : repurchasePage}
+            totalCount={activeTab === 'purchase' ? purchaseCount : repurchaseCount}
+            pageSize={PAGE_SIZE}
+            onPageChange={activeTab === 'purchase' ? setPurchasePage : setRepurchasePage}
+            isLoading={isTableLoading}
+          />
         </div>
 
         {/* RE-PURCHASE MODAL */}
@@ -1490,10 +1585,14 @@ export default function Stock() {
 
       <style dangerouslySetInnerHTML={{
         __html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
       `}} />
     </AdminLayout>
   );

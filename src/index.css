@@ -11,14 +11,14 @@ body {
 }
 
 /* Custom Scrollbar Global Styles */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 0px;
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
-@media (min-width: 768px) {
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-  }
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -26,13 +26,11 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #c4b5fd; /* violet-300 */
-  border-radius: 10px;
-  border: 4px solid transparent;
-  background-clip: padding-box;
+  background: #cbd5e1;
+  border-radius: 9999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #a78bfa; /* violet-400 */
-  background-clip: padding-box;
+  background: #94a3b8;
 }
+

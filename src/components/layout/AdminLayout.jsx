@@ -196,20 +196,23 @@ export default function AdminLayout({ children }) {
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 0px;
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 transparent;
         }
-        @media (min-width: 768px) {
-          .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
-          }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+          height: 5px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #c4b5fd;
-          border-radius: 10px;
+          background: #cbd5e1;
+          border-radius: 9999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
         }
       `}} />
     </div>

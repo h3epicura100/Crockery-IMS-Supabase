@@ -14,10 +14,13 @@ import {
   UploadCloud
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
+import Pagination from "../components/Pagination";
 import { supabase } from "../utils/supabaseClient";
 import { uploadImage } from "../utils/supabaseStorage";
 import { normalizeForMatch } from "../utils/helpers";
 import { TABLES, DROPDOWN_CATEGORY } from "../utils/dbSchema";
+
+const PAGE_SIZE = 50;
 
 const emptyItemForm = {
   id: null,
@@ -106,6 +109,11 @@ export default function Master() {
   const [filterType, setFilterType] = useState("");
   const [filterDept, setFilterDept] = useState("");
   const [filterItem, setFilterItem] = useState("");
+  const [masterPage, setMasterPage] = useState(1);
+
+  useEffect(() => {
+    setMasterPage(1);
+  }, [filterType, filterDept, filterItem, itemSearch]);
 
   const typeOptions = useMemo(() => {
     const s = normalizeForMatch(itemSearch);
@@ -167,6 +175,11 @@ export default function Master() {
     });
   }, [items, itemSearch, filterType, filterDept, filterItem]);
 
+  const paginatedItems = useMemo(() => {
+    const start = (masterPage - 1) * PAGE_SIZE;
+    return filteredItems.slice(start, start + PAGE_SIZE);
+  }, [filteredItems, masterPage]);
+
   const hasActiveFilters = Boolean(filterType || filterDept || filterItem || itemSearch);
 
   const clearAllFilters = () => {
@@ -174,6 +187,7 @@ export default function Master() {
     setFilterDept("");
     setFilterItem("");
     setItemSearch("");
+    setMasterPage(1);
   };
 
   const issuers = useMemo(() => dropdowns.filter(d => d.category === DROPDOWN_CATEGORY.ISSUER), [dropdowns]);
@@ -442,7 +456,7 @@ export default function Master() {
                   ) : filteredItems.length === 0 ? (
                     <tr><td colSpan={8} className="px-6 py-16 text-center text-slate-400 text-xs font-bold uppercase">No items found</td></tr>
                   ) : (
-                    filteredItems.map(item => {
+                    paginatedItems.map(item => {
                       const displayImgUrl = getDisplayableImageUrl(item.image_url);
                       return (
                         <tr key={item.id} className="hover:bg-slate-50/50">
@@ -498,6 +512,14 @@ export default function Master() {
                 </tbody>
               </table>
             </div>
+
+            <Pagination
+              currentPage={masterPage}
+              totalCount={filteredItems.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setMasterPage}
+              isLoading={itemsLoading}
+            />
           </div>
         )}
 

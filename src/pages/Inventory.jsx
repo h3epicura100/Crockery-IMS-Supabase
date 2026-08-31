@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import AdminLayout from '../components/layout/AdminLayout';
 import PartyCard from '../components/layout/PartyCard';
+import Pagination from '../components/Pagination';
 import { formatDate, toInputDate, parseRowDate, parseNumber, formatIndianAmount, cleanText, normalizeForMatch } from '../utils/helpers';
 import { supabase } from '../utils/supabaseClient';
 import { uploadImage } from '../utils/supabaseStorage';
@@ -28,6 +29,8 @@ import { loadImageAsBase64, loadImagesBatched } from '../utils/imageBase64';
 import { TABLES, COLUMNS, ENUMS, DROPDOWN_CATEGORY, STORAGE_FOLDERS, withItemMaster } from '../utils/dbSchema';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+
+const PAGE_SIZE = 50;
 
 const Inventory = () => {
   const [activeTab, setActiveTab] = useState('issued'); // 'issued' or 'return'
@@ -74,6 +77,12 @@ const Inventory = () => {
   const [returnFilterParty, setReturnFilterParty] = useState("");
   const [returnStartDate, setReturnStartDate] = useState("");
   const [returnEndDate, setReturnEndDate] = useState("");
+
+  // Pagination States
+  const [issuePage, setIssuePage] = useState(1);
+  const [returnPage, setReturnPage] = useState(1);
+  const [partyGroupPage, setPartyGroupPage] = useState(1);
+  const [partyDetailPage, setPartyDetailPage] = useState(1);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -403,7 +412,7 @@ const Inventory = () => {
         imageUrl: row.image_url,
         remarks: row.remarks,
         eventType: row.event_type,
-        estimatedCost: row.estimated_cost,
+        estimatedCost: row.estimated_cost != null ? row.estimated_cost : (row.for_type === 'H3' ? 0 : (Number(row.issue_qty || 0) * Number(row.renting_rate || 0))),
         forType: row.for_type,
         issuer: row.issuer,
         dishes: row.dishes,
@@ -431,7 +440,7 @@ const Inventory = () => {
         totalBalance: row.total_balance,
         imageUrl: row.image_url,
         remarks: row.remarks,
-        totalCost: row.total_cost,
+        totalCost: row.total_cost != null ? row.total_cost : ((Number(row.damage_qty || 0) * Number(row.damage_rate || 0)) + (Number(row.missing_qty || 0) * Number(row.damage_rate || 0))),
         forType: row.for_type,
         createdAt: row.created_at
       })));
@@ -614,7 +623,17 @@ const Inventory = () => {
 
   useEffect(() => {
     setSelectedPartyCard(null);
+    setIssuePage(1);
+    setPartyGroupPage(1);
   }, [activeTab, issuedFilterItem, issuedFilterType, issuedFilterParty, issuedStartDate, issuedEndDate, searchTerm]);
+
+  useEffect(() => {
+    setReturnPage(1);
+  }, [returnFilterItem, returnFilterType, returnFilterParty, returnStartDate, returnEndDate, searchTerm]);
+
+  useEffect(() => {
+    setPartyDetailPage(1);
+  }, [selectedPartyCard]);
 
   useEffect(() => { fetchInitialData(); fetchHistory(); }, []);
 
@@ -1516,9 +1535,9 @@ const Inventory = () => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-auto custom-scrollbar relative">
-            {activeTab === 'issued' && shouldGroup && !selectedPartyCard ? (
-              isTableLoading ? (
+          {activeTab === 'issued' && shouldGroup && !selectedPartyCard ? (
+            <div className="flex-1 overflow-auto custom-scrollbar flex flex-col min-h-0">
+              {isTableLoading ? (
                 <div className="py-32 text-center flex flex-col items-center justify-center gap-3">
                   <Loader2 className="h-10 w-10 animate-spin text-violet-600" />
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading Party Cards...</p>
@@ -1529,49 +1548,65 @@ const Inventory = () => {
                   <p className="text-sm font-bold uppercase tracking-widest text-slate-400">No records found</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6 animate-in fade-in duration-300">
-                  {groupedIssuedData.map((group, idx) => (
-                    <PartyCard
-                      key={idx}
-                      partyName={group.partyName}
-                      eventDate={group.latestDate}
-                      totalQty={group.totalQty}
-                      totalCost={group.totalCost}
-                      isDownloading={generatingReportParty === group.partyName}
-                      onDownloadReport={() => handleGeneratePartyReport(group.partyName, group.rows)}
-                      onClick={() => setSelectedPartyCard(group.partyName)}
-                    />
-                  ))}
-                </div>
-              )
-            ) : (
-              <>
-                {activeTab === 'issued' && shouldGroup && selectedPartyCard && (
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 px-3 sm:px-6 py-2.5 sm:py-4 bg-white border-b border-slate-100/80 sticky top-0 z-30 animate-in slide-in-from-top-2 duration-200">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        onClick={() => setSelectedPartyCard(null)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-bold text-violet-600 border border-slate-200/50 hover:border-slate-200 transition-all select-none"
-                      >
-                        <ArrowLeft className="h-3.5 w-3.5" /> Back to Parties
-                      </button>
-                      <button
-                        onClick={handleGenerateReport}
-                        disabled={isReportGenerating}
-                        className="flex items-center gap-1.5 px-3.5 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-violet-100/50 hover:scale-[1.02] active:scale-95 select-none disabled:opacity-75"
-                      >
-                        {isReportGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />} Download Report
-                      </button>
+                <>
+                  <div className="flex-1 overflow-auto custom-scrollbar p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in duration-300">
+                      {groupedIssuedData
+                        .slice((partyGroupPage - 1) * PAGE_SIZE, partyGroupPage * PAGE_SIZE)
+                        .map((group, idx) => (
+                          <PartyCard
+                            key={idx}
+                            partyName={group.partyName}
+                            eventDate={group.latestDate}
+                            totalQty={group.totalQty}
+                            totalCost={group.totalCost}
+                            isDownloading={generatingReportParty === group.partyName}
+                            onDownloadReport={() => handleGeneratePartyReport(group.partyName, group.rows)}
+                            onClick={() => setSelectedPartyCard(group.partyName)}
+                          />
+                        ))}
                     </div>
-                    <span className="text-xs font-bold text-slate-500 truncate max-w-full">
-                      Showing records for: <strong className="text-slate-800">{selectedPartyCard}</strong>
-                    </span>
                   </div>
-                )}
+                  <Pagination
+                    currentPage={partyGroupPage}
+                    totalCount={groupedIssuedData.length}
+                    pageSize={PAGE_SIZE}
+                    onPageChange={setPartyGroupPage}
+                    isLoading={isTableLoading}
+                  />
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col min-h-0">
+              {activeTab === 'issued' && shouldGroup && selectedPartyCard && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 px-3 sm:px-6 py-2.5 sm:py-4 bg-white border-b border-slate-100/80 shrink-0 animate-in slide-in-from-top-2 duration-200">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => setSelectedPartyCard(null)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-bold text-violet-600 border border-slate-200/50 hover:border-slate-200 transition-all select-none"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" /> Back to Parties
+                    </button>
+                    <button
+                      onClick={handleGenerateReport}
+                      disabled={isReportGenerating}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-violet-100/50 hover:scale-[1.02] active:scale-95 select-none disabled:opacity-75"
+                    >
+                      {isReportGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />} Download Report
+                    </button>
+                  </div>
+                  <span className="text-xs font-bold text-slate-500 truncate max-w-full">
+                    Showing records for: <strong className="text-slate-800">{selectedPartyCard}</strong>
+                  </span>
+                </div>
+              )}
+
+              <div className="max-h-[65vh] overflow-x-auto overflow-y-auto relative custom-scrollbar">
                 <table className="w-full text-center border-collapse border-separate border-spacing-0 min-w-[650px]">
-                  <thead className="sticky top-0 z-20">
+                  <thead className="sticky top-0 z-20 bg-violet-50">
                     <tr className="bg-violet-50">
-                      <th className="px-4 py-4 w-12 text-center bg-violet-50 border-b border-violet-100/50">
+                      <th className="px-4 py-4 w-12 text-center bg-violet-50 border-b border-violet-100">
                         <input
                           type="checkbox"
                           className="w-4 h-4 rounded border-violet-300 text-violet-600 focus:ring-violet-500 cursor-pointer"
@@ -1588,7 +1623,7 @@ const Inventory = () => {
                         />
                       </th>
                       {columnConfig.map(col => visibleColumns[col.key] !== false && (
-                        <th key={col.key} className={`px-6 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.15em] bg-violet-50 border-b border-violet-100/50 text-center ${['date', 'eventDate', 'returnDate'].includes(col.key) ? 'min-w-[120px]' : ''}`}>{col.label}</th>
+                        <th key={col.key} className={`px-6 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.15em] bg-violet-50 border-b border-violet-100 text-center ${['date', 'eventDate', 'returnDate'].includes(col.key) ? 'min-w-[120px]' : ''}`}>{col.label}</th>
                       ))}
                     </tr>
                   </thead>
@@ -1601,7 +1636,8 @@ const Inventory = () => {
                       (() => {
                         const partyGroup = groupedIssuedData.find(g => g.partyName === selectedPartyCard);
                         const displayRows = partyGroup ? partyGroup.rows : [];
-                        return displayRows.map((row) => {
+                        const paginatedPartyDetailRows = displayRows.slice((partyDetailPage - 1) * PAGE_SIZE, partyDetailPage * PAGE_SIZE);
+                        return paginatedPartyDetailRows.map((row) => {
                           const isSelected = selectedIds.has(row.id);
                           const currentData = editDataMap[row.id] || row;
 
@@ -1618,13 +1654,20 @@ const Inventory = () => {
                                     <span className="text-slate-400 whitespace-nowrap">{formatDate(currentData.createdAt)}</span>
                                   ) : col.key === 'eventDate' ? (
                                     <span className="text-slate-400 whitespace-nowrap">{formatDate(currentData.eventDate)}</span>
-                                  ) : col.key === 'item' ? (<span className="font-bold text-slate-800">{currentData.itemName}</span>
-                                  ) : col.key === 'type' ? currentData.inventoryType || '-'
-                                  : col.key === 'party' ? currentData.partyName || '-'
-                                  : col.key === 'for' ? currentData.forType || '-'
-                                  : col.key === 'eventType' ? currentData.eventType || '-'
-                                  : col.key === 'dishes' ? currentData.dishes || '-'
-                                  : col.key === 'estimatedCost' ? (<span className="font-bold text-emerald-600">₹{parseFloat(currentData.estimatedCost || 0).toFixed(2)}</span>
+                                  ) : col.key === 'item' ? (
+                                    <span className="font-bold text-slate-800">{currentData.itemName}</span>
+                                  ) : col.key === 'type' ? (
+                                    currentData.inventoryType || '-'
+                                  ) : col.key === 'party' ? (
+                                    currentData.partyName || '-'
+                                  ) : col.key === 'for' ? (
+                                    currentData.forType || '-'
+                                  ) : col.key === 'eventType' ? (
+                                    currentData.eventType || '-'
+                                  ) : col.key === 'dishes' ? (
+                                    currentData.dishes || '-'
+                                  ) : col.key === 'estimatedCost' ? (
+                                    <span className="font-bold text-emerald-600">₹{parseFloat(currentData.estimatedCost || 0).toFixed(2)}</span>
                                   ) : col.key === 'actions' ? (
                                     <div className="flex items-center justify-center gap-1.5">
                                       <button
@@ -1660,74 +1703,105 @@ const Inventory = () => {
                     ) : shouldGroup ? (
                       <tr><td colSpan={columnConfig.length + 1} className="py-20 text-center"><p className="text-xs font-bold uppercase tracking-widest text-slate-350">Choose a party card above</p></td></tr>
                     ) : (
-                      getFilteredHistory().map((row) => {
-                        const isSelected = selectedIds.has(row.id);
-                        const currentData = editDataMap[row.id] || row;
+                      (() => {
+                        const currentFiltered = getFilteredHistory();
+                        const activeCurrentPage = activeTab === 'issued' ? issuePage : returnPage;
+                        const paginatedRows = currentFiltered.slice((activeCurrentPage - 1) * PAGE_SIZE, activeCurrentPage * PAGE_SIZE);
+                        return paginatedRows.map((row) => {
+                          const isSelected = selectedIds.has(row.id);
+                          const currentData = editDataMap[row.id] || row;
 
-                        return (
-                          <tr key={row.id} className={`transition-all font-sans border-b border-slate-50 last:border-0 ${isSelected ? 'bg-violet-50/50' : 'hover:bg-slate-50/50'}`}>
-                            <td className="px-4 py-3 text-center">
-                              <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500 cursor-pointer" checked={isSelected} onChange={() => toggleRowSelection(row)} />
-                            </td>
-                            {columnConfig.map(col => visibleColumns[col.key] !== false && (
-                              <td key={col.key} className="px-4 py-3 text-xs font-semibold text-slate-600 text-center">
-                                {isSelected && activeTab === 'issued' && col.key === 'qty' ? (
-                                  <input type="number" value={currentData.qty} onChange={(e) => handleInlineEdit(row.id, 'qty', e.target.value)} className="w-20 px-2 py-1 bg-white border border-violet-200 rounded text-center text-xs font-bold text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
-                                ) : isSelected && activeTab === 'return' && col.key === 'qty' ? (
-                                  <input type="number" value={currentData.qty} onChange={(e) => handleInlineEdit(row.id, 'qty', e.target.value)} className="w-20 px-2 py-1 bg-white border border-violet-200 rounded text-center text-xs font-bold text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
-                                ) : isSelected && activeTab === 'return' && col.key === 'damage' ? (
-                                  <input type="number" value={currentData.damage} onChange={(e) => handleInlineEdit(row.id, 'damage', e.target.value)} className="w-20 px-2 py-1 bg-white border border-violet-200 rounded text-center text-xs font-bold text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
-                                ) : isSelected && activeTab === 'return' && col.key === 'missing' ? (
-                                  <input type="number" value={currentData.missing} onChange={(e) => handleInlineEdit(row.id, 'missing', e.target.value)} className="w-20 px-2 py-1 bg-white border border-violet-200 rounded text-center text-xs font-bold text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
-                                ) : col.key === 'actions' ? (
-                                  <div className="flex items-center justify-center gap-1.5">
-                                    <button
-                                      onClick={() => activeTab === 'issued' ? handleEditIssue(currentData) : handleEditReturn(currentData)}
-                                      className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all"
-                                      title="Edit Record"
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteSingleRecord(currentData)}
-                                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                                      title="Delete Record"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </button>
-                                  </div>
-                                ) : col.key === 'date' ? (
-                                  <span className="text-slate-400 whitespace-nowrap">{formatDate(currentData.createdAt)}</span>
-                                ) : col.key === 'eventDate' || col.key === 'returnDate' ? (
-                                  <span className="text-slate-400 whitespace-nowrap">{formatDate(currentData[col.key])}</span>
-                                ) : col.key === 'damage' ? (<span className="text-red-500 font-bold">{currentData.damage}</span>
-                                ) : col.key === 'missing' ? (<span className="text-orange-500 font-bold">{currentData.missing}</span>
-                                ) : col.key === 'item' ? (<span className="font-bold text-slate-800">{currentData.itemName}</span>
-                                ) : col.key === 'type' ? currentData.inventoryType || '-'
-                                : col.key === 'party' ? currentData.partyName || '-'
-                                : col.key === 'for' ? currentData.forType || '-'
-                                : col.key === 'estimatedCost' ? (<span className="font-bold text-emerald-600">₹{parseFloat(currentData.estimatedCost || 0).toFixed(2)}</span>
-                                ) : col.key === 'totalCost' ? (<span className="font-bold text-emerald-600">₹{parseFloat(currentData.totalCost || 0).toFixed(2)}</span>
-                                ) : col.key === 'image' ? (
-                                  currentData.imageUrl && currentData.imageUrl !== 'No Image' ? (
-                                    <div className="relative flex justify-center group/img">
-                                      <a href={currentData.imageUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-lg overflow-hidden border border-slate-100 flex items-center justify-center bg-slate-50 group-hover:scale-110 transition-transform">
-                                        <img src={getDisplayableImageUrl(currentData.imageUrl)} alt="Item" className="h-full w-full object-cover" />
-                                      </a>
-                                    </div>
-                                  ) : <EyeOff className="h-4 w-4 opacity-10 mx-auto text-slate-200" />
-                                ) : currentData[col.key] || '-'}
+                          return (
+                            <tr key={row.id} className={`transition-all font-sans border-b border-slate-50 last:border-0 ${isSelected ? 'bg-violet-50/50' : 'hover:bg-slate-50/50'}`}>
+                              <td className="px-4 py-3 text-center">
+                                <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500 cursor-pointer" checked={isSelected} onChange={() => toggleRowSelection(row)} />
                               </td>
-                            ))}
-                          </tr>
-                        );
-                      })
+                              {columnConfig.map(col => visibleColumns[col.key] !== false && (
+                                <td key={col.key} className="px-4 py-3 text-xs font-semibold text-slate-600 text-center">
+                                  {isSelected && activeTab === 'issued' && col.key === 'qty' ? (
+                                    <input type="number" value={currentData.qty} onChange={(e) => handleInlineEdit(row.id, 'qty', e.target.value)} className="w-20 px-2 py-1 bg-white border border-violet-200 rounded text-center text-xs font-bold text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+                                  ) : isSelected && activeTab === 'return' && col.key === 'qty' ? (
+                                    <input type="number" value={currentData.qty} onChange={(e) => handleInlineEdit(row.id, 'qty', e.target.value)} className="w-20 px-2 py-1 bg-white border border-violet-200 rounded text-center text-xs font-bold text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+                                  ) : isSelected && activeTab === 'return' && col.key === 'damage' ? (
+                                    <input type="number" value={currentData.damage} onChange={(e) => handleInlineEdit(row.id, 'damage', e.target.value)} className="w-20 px-2 py-1 bg-white border border-violet-200 rounded text-center text-xs font-bold text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+                                  ) : isSelected && activeTab === 'return' && col.key === 'missing' ? (
+                                    <input type="number" value={currentData.missing} onChange={(e) => handleInlineEdit(row.id, 'missing', e.target.value)} className="w-20 px-2 py-1 bg-white border border-violet-200 rounded text-center text-xs font-bold text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+                                  ) : col.key === 'actions' ? (
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <button
+                                        onClick={() => activeTab === 'issued' ? handleEditIssue(currentData) : handleEditReturn(currentData)}
+                                        className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all"
+                                        title="Edit Record"
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteSingleRecord(currentData)}
+                                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                        title="Delete Record"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  ) : col.key === 'date' ? (
+                                    <span className="text-slate-400 whitespace-nowrap">{formatDate(currentData.createdAt)}</span>
+                                  ) : col.key === 'eventDate' || col.key === 'returnDate' ? (
+                                    <span className="text-slate-400 whitespace-nowrap">{formatDate(currentData[col.key])}</span>
+                                  ) : col.key === 'damage' ? (
+                                    <span className="text-red-500 font-bold">{currentData.damage}</span>
+                                  ) : col.key === 'missing' ? (
+                                    <span className="text-orange-500 font-bold">{currentData.missing}</span>
+                                  ) : col.key === 'item' ? (
+                                    <span className="font-bold text-slate-800">{currentData.itemName}</span>
+                                  ) : col.key === 'type' ? (
+                                    currentData.inventoryType || '-'
+                                  ) : col.key === 'party' ? (
+                                    currentData.partyName || '-'
+                                  ) : col.key === 'for' ? (
+                                    currentData.forType || '-'
+                                  ) : col.key === 'estimatedCost' ? (
+                                    <span className="font-bold text-emerald-600">₹{parseFloat(currentData.estimatedCost || 0).toFixed(2)}</span>
+                                  ) : col.key === 'totalCost' ? (
+                                    <span className="font-bold text-emerald-600">₹{parseFloat(currentData.totalCost || 0).toFixed(2)}</span>
+                                  ) : col.key === 'image' ? (
+                                    currentData.imageUrl && currentData.imageUrl !== 'No Image' ? (
+                                      <div className="relative flex justify-center group/img">
+                                        <a href={currentData.imageUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-lg overflow-hidden border border-slate-100 flex items-center justify-center bg-slate-50 group-hover:scale-110 transition-transform">
+                                          <img src={getDisplayableImageUrl(currentData.imageUrl)} alt="Item" className="h-full w-full object-cover" />
+                                        </a>
+                                      </div>
+                                    ) : <EyeOff className="h-4 w-4 opacity-10 mx-auto text-slate-200" />
+                                  ) : currentData[col.key] || '-'}
+                                </td>
+                              ))}
+                            </tr>
+                          );
+                        });
+                      })()
                     )}
                   </tbody>
                 </table>
-              </>
-            )}
-          </div>
+              </div>
+
+              {activeTab === 'issued' && shouldGroup && selectedPartyCard ? (
+                <Pagination
+                  currentPage={partyDetailPage}
+                  totalCount={groupedIssuedData.find(g => g.partyName === selectedPartyCard)?.rows?.length || 0}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={setPartyDetailPage}
+                  isLoading={isTableLoading}
+                />
+              ) : (
+                <Pagination
+                  currentPage={activeTab === 'issued' ? issuePage : returnPage}
+                  totalCount={getFilteredHistory().length}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={activeTab === 'issued' ? setIssuePage : setReturnPage}
+                  isLoading={isTableLoading}
+                />
+              )}
+            </div>
+          )}
         </div>
 
         {/* MODALS */}
@@ -2227,10 +2301,14 @@ const Inventory = () => {
 
       <style dangerouslySetInnerHTML={{
         __html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
       `}} />
     </AdminLayout>
   );

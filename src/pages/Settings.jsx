@@ -140,9 +140,9 @@ export default function Settings() {
             </button>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="max-h-[65vh] overflow-x-auto overflow-y-auto relative custom-scrollbar">
             <table className="w-full text-left border-collapse min-w-[500px]">
-              <thead className="bg-violet-50">
+              <thead className="sticky top-0 bg-violet-50 z-10">
                 <tr>
                   {["Name", "Username", "Password", "Role", ""].map(h => (
                     <th key={h} className="px-4 sm:px-6 py-3 text-[10px] font-bold text-violet-600 uppercase tracking-widest border-b border-violet-100">{h}</th>

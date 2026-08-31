@@ -32,7 +32,9 @@ import {
   Loader2
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
+import Pagination from "../components/Pagination";
 
+const PAGE_SIZE = 50;
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -166,59 +168,111 @@ export default function Dashboard() {
     }
   };
 
-  const fetchHistoryData = async () => {
+  const [todayPage, setTodayPage] = useState(1);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyCount, setHistoryCount] = useState(0);
+
+  const fetchHistoryData = useCallback(async (page = 1) => {
     setHistoryLoading(true);
     try {
-      let all = [];
-      const pageSize = 1000;
-      for (let page = 0; ; page++) {
-        const { data, error } = await supabase
-          .from(TABLES.INVENTORY_DAILY_SNAPSHOT)
-          .select(`
-            snapshot_date, total_purchased, opening_balance, closing_balance,
-            total_issue, total_return, total_damage, total_missing,
-            ${withItemMaster('item_name, inventory_type, department')}
-          `)
-          .order("snapshot_date", { ascending: false })
-          .range(page * pageSize, page * pageSize + pageSize - 1);
+      let query = supabase
+        .from(TABLES.INVENTORY_DAILY_SNAPSHOT)
+        .select(`
+          snapshot_date, total_purchased, opening_balance, closing_balance,
+          total_issue, total_return, total_damage, total_missing,
+          ${withItemMaster('item_name, inventory_type, department')}
+        `, { count: 'exact' });
 
-        if (error) throw error;
+      if (startDate) query = query.gte("snapshot_date", startDate);
+      if (endDate) query = query.lte("snapshot_date", endDate);
+      if (filterType) query = query.filter("item_master.inventory_type", "eq", filterType);
+      if (filterDept) query = query.filter("item_master.department", "eq", filterDept);
+      if (filterName) query = query.filter("item_master.item_name", "eq", filterName);
 
-        all = all.concat(data || []);
-        setHistoryData(all.map((row, idx) => ({
-          id: `hist-${idx}`,
-          date: row.snapshot_date,
-          serial: idx + 1,
-          name: row.item_master?.item_name,
-          type: row.item_master?.inventory_type,
-          department: row.item_master?.department,
-          purchase: parseNumber(row.total_purchased),
-          opening: parseNumber(row.opening_balance),
-          closing: parseNumber(row.closing_balance),
-          issue: parseNumber(row.total_issue),
-          returns: parseNumber(row.total_return),
-          damage: parseNumber(row.total_damage),
-          missing: parseNumber(row.total_missing)
-        })));
+      query = query
+        .order("snapshot_date", { ascending: false })
+        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-        if (!data || data.length < pageSize) break;
-      }
+      const { data, count, error } = await query;
+      if (error) throw error;
+
+      setHistoryCount(count || 0);
+      setHistoryData((data || []).map((row, idx) => ({
+        id: `hist-${(page - 1) * PAGE_SIZE + idx}`,
+        date: row.snapshot_date,
+        serial: (page - 1) * PAGE_SIZE + idx + 1,
+        name: row.item_master?.item_name,
+        type: row.item_master?.inventory_type,
+        department: row.item_master?.department,
+        purchase: parseNumber(row.total_purchased),
+        opening: parseNumber(row.opening_balance),
+        closing: parseNumber(row.closing_balance),
+        issue: parseNumber(row.total_issue),
+        returns: parseNumber(row.total_return),
+        damage: parseNumber(row.total_damage),
+        missing: parseNumber(row.total_missing)
+      })));
     } catch (err) {
       console.error("Dashboard history fetch error:", err);
     } finally {
       setHistoryLoading(false);
     }
-  };
+  }, [startDate, endDate, filterType, filterDept, filterName]);
+
+  const [historyStats, setHistoryStats] = useState({ p: 0, o: 0, i: 0, r: 0, d: 0, m: 0 });
+
+  const fetchHistoryTotals = useCallback(async () => {
+    try {
+      let query = supabase
+        .from(TABLES.INVENTORY_DAILY_SNAPSHOT)
+        .select(`
+          total_purchased, opening_balance,
+          total_issue, total_return, total_damage, total_missing,
+          ${withItemMaster('item_name, inventory_type, department')}
+        `);
+
+      if (startDate) query = query.gte("snapshot_date", startDate);
+      if (endDate) query = query.lte("snapshot_date", endDate);
+      if (filterType) query = query.filter("item_master.inventory_type", "eq", filterType);
+      if (filterDept) query = query.filter("item_master.department", "eq", filterDept);
+      if (filterName) query = query.filter("item_master.item_name", "eq", filterName);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      let totals = { p: 0, o: 0, i: 0, r: 0, d: 0, m: 0 };
+      (data || []).forEach(row => {
+        totals.p += parseNumber(row.total_purchased);
+        totals.o += parseNumber(row.opening_balance);
+        totals.i += parseNumber(row.total_issue);
+        totals.r += parseNumber(row.total_return);
+        totals.d += parseNumber(row.total_damage);
+        totals.m += parseNumber(row.total_missing);
+      });
+      setHistoryStats(totals);
+    } catch (err) {
+      console.error("Failed to fetch history totals:", err);
+    }
+  }, [startDate, endDate, filterType, filterDept, filterName]);
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
   useEffect(() => {
-    if (activeTab === "history" && historyData.length === 0) {
-      fetchHistoryData();
+    setTodayPage(1);
+    setHistoryPage(1);
+    if (activeTab === "history") {
+      fetchHistoryData(1);
+      fetchHistoryTotals();
     }
-  }, [activeTab]);
+  }, [activeTab, filterType, filterDept, filterName, startDate, endDate, fetchHistoryData, fetchHistoryTotals]);
+
+  useEffect(() => {
+    if (activeTab === "history") {
+      fetchHistoryData(historyPage);
+    }
+  }, [historyPage, activeTab, fetchHistoryData]);
 
   const currentData = activeTab === "today" ? inventoryData : historyData;
   const columnConfig = activeTab === "today" ? todayColumns : historyColumns;
@@ -267,45 +321,58 @@ export default function Dashboard() {
 
   // FACETED OPTIONS CALCULATION
   const typeOptions = useMemo(() => {
-    const filtered = currentData.filter(item => {
-      return rowMatchesSearch(item, searchTerm) &&
-             (!filterDept || item.department === filterDept) &&
-             (!filterName || item.name === filterName) &&
-             (activeTab === "today" ? true : dateMatchesRange(item.date, startDate, endDate));
+    const source = inventoryData.length > 0 ? inventoryData : currentData;
+    const filtered = source.filter(item => {
+      return (!filterDept || item.department === filterDept) &&
+             (!filterName || item.name === filterName);
     });
     return [...new Set(filtered.map(item => item.type).filter(Boolean))].sort();
-  }, [currentData, searchTerm, filterDept, filterName, startDate, endDate, activeTab]);
+  }, [inventoryData, currentData, filterDept, filterName]);
 
   const deptOptions = useMemo(() => {
-    const filtered = currentData.filter(item => {
-      return rowMatchesSearch(item, searchTerm) &&
-             (!filterType || item.type === filterType) &&
-             (!filterName || item.name === filterName) &&
-             (activeTab === "today" ? true : dateMatchesRange(item.date, startDate, endDate));
+    const source = inventoryData.length > 0 ? inventoryData : currentData;
+    const filtered = source.filter(item => {
+      return (!filterType || item.type === filterType) &&
+             (!filterName || item.name === filterName);
     });
     return [...new Set(filtered.map(item => item.department).filter(Boolean))].sort();
-  }, [currentData, searchTerm, filterType, filterName, startDate, endDate, activeTab]);
+  }, [inventoryData, currentData, filterType, filterName]);
 
   const nameOptions = useMemo(() => {
-    const filtered = currentData.filter(item => {
-      return rowMatchesSearch(item, searchTerm) &&
-             (!filterType || item.type === filterType) &&
-             (!filterDept || item.department === filterDept) &&
-             (activeTab === "today" ? true : dateMatchesRange(item.date, startDate, endDate));
+    const source = inventoryData.length > 0 ? inventoryData : currentData;
+    const filtered = source.filter(item => {
+      return (!filterType || item.type === filterType) &&
+             (!filterDept || item.department === filterDept);
     });
     return [...new Set(filtered.map(item => item.name).filter(Boolean))].sort();
-  }, [currentData, searchTerm, filterType, filterDept, startDate, endDate, activeTab]);
+  }, [inventoryData, currentData, filterType, filterDept]);
 
-  // MAIN FILTERED DATA
+  // MAIN FILTERED DATA FOR TODAY TAB
   const filteredData = useMemo(() => {
-    return currentData.filter(item => {
+    return inventoryData.filter(item => {
       return rowMatchesSearch(item, searchTerm) &&
              (!filterType || item.type === filterType) &&
              (!filterDept || item.department === filterDept) &&
-             (!filterName || item.name === filterName) &&
-             (activeTab === "today" ? true : dateMatchesRange(item.date, startDate, endDate));
+             (!filterName || item.name === filterName);
     });
-  }, [currentData, searchTerm, filterType, filterDept, filterName, startDate, endDate, activeTab]);
+  }, [inventoryData, searchTerm, filterType, filterDept, filterName, rowMatchesSearch]);
+
+  const displayedTodayData = useMemo(() => {
+    const start = (todayPage - 1) * PAGE_SIZE;
+    return filteredData.slice(start, start + PAGE_SIZE);
+  }, [filteredData, todayPage]);
+
+  const displayedHistoryData = useMemo(() => {
+    if (!searchTerm.trim()) return historyData;
+    const s = normalizeForMatch(searchTerm);
+    return historyData.filter(item =>
+      normalizeForMatch(item.name).includes(s) ||
+      normalizeForMatch(item.type).includes(s) ||
+      normalizeForMatch(item.department).includes(s)
+    );
+  }, [historyData, searchTerm]);
+
+  const displayList = activeTab === "today" ? displayedTodayData : displayedHistoryData;
 
   const handleExportPDF = async () => {
     if (isExporting) return;
@@ -332,18 +399,20 @@ export default function Dashboard() {
     }
   };
 
-  const metricsFilteredData = useMemo(() => {
-    return currentData.filter(item => {
-      return (!filterType || item.type === filterType) &&
-             (!filterDept || item.department === filterDept) &&
-             (!filterName || item.name === filterName) &&
-             (activeTab === "today" ? true : dateMatchesRange(item.date, startDate, endDate));
-    });
-  }, [currentData, filterType, filterDept, filterName, startDate, endDate, activeTab]);
-
   const dashboardStats = useMemo(() => {
-    let totals = { p:0, o:0, i:0, r:0, d:0, m:0 };
-    metricsFilteredData.forEach(item => {
+    if (activeTab === "history") {
+      return {
+        totalPurchased: historyStats.p,
+        openingBalance: historyStats.o,
+        totalIssued: historyStats.i,
+        totalReturned: historyStats.r,
+        totalDamaged: historyStats.d,
+        totalMissing: historyStats.m
+      };
+    }
+
+    let totals = { p: 0, o: 0, i: 0, r: 0, d: 0, m: 0 };
+    filteredData.forEach(item => {
       totals.p += item.purchase || 0;
       totals.o += item.opening || 0;
       totals.i += item.issue || 0;
@@ -359,7 +428,7 @@ export default function Dashboard() {
       totalDamaged: totals.d,
       totalMissing: totals.m
     };
-  }, [metricsFilteredData]);
+  }, [activeTab, historyStats, filteredData]);
 
   // eslint-disable-next-line no-unused-vars
   const MetricCard = ({ title, value, icon: Icon, color, loading: cardLoading }) => (
@@ -540,12 +609,12 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-x-auto overflow-y-auto relative custom-scrollbar">
+            <div className="max-h-[65vh] overflow-x-auto overflow-y-auto relative custom-scrollbar">
               <table className="w-full min-w-[850px] text-center border-collapse border-separate border-spacing-0">
-                <thead className="sticky top-0 z-20">
-                  <tr className="bg-violet-50/95 backdrop-blur-sm">
+                <thead className="sticky top-0 z-20 bg-violet-50">
+                  <tr className="bg-violet-50">
                     {columnConfig.map(col => visibleColumns[col.key] && (
-                      <th key={col.key} className={`px-6 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100/50 ${col.key === 'date' ? 'min-w-[110px]' : ''}`}>
+                      <th key={col.key} className={`px-6 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100 ${col.key === 'date' ? 'min-w-[110px]' : ''}`}>
                         {col.label}
                       </th>
                     ))}
@@ -560,7 +629,7 @@ export default function Dashboard() {
                         ))}
                       </tr>
                     ))
-                  ) : filteredData.length === 0 ? (
+                  ) : displayList.length === 0 ? (
                     <tr>
                       <td colSpan={columnConfig.length} className="px-6 py-24">
                         <div className="flex flex-col items-center gap-4 opacity-30">
@@ -570,7 +639,7 @@ export default function Dashboard() {
                       </td>
                     </tr>
                   ) : (
-                    filteredData.map((item, idx) => (
+                    displayList.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
                         {columnConfig.map(col => {
                           if (!visibleColumns[col.key]) return null;
@@ -603,6 +672,14 @@ export default function Dashboard() {
                 </tbody>
               </table>
             </div>
+
+            <Pagination
+              currentPage={activeTab === "today" ? todayPage : historyPage}
+              totalCount={activeTab === "today" ? filteredData.length : historyCount}
+              pageSize={PAGE_SIZE}
+              onPageChange={activeTab === "today" ? setTodayPage : setHistoryPage}
+              isLoading={loading || historyLoading}
+            />
           </div>
         </div>
       </div>
