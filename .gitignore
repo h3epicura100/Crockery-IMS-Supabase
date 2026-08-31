@@ -31,3 +31,5 @@ dist-ssr
 apps-script
 task.txt
 supabase/.temp
+*.cjs
+*.csv
