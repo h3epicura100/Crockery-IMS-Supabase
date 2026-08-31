@@ -86,6 +86,8 @@ export default function Dashboard() {
   const historyColumns = [
     { key: 'date', label: 'Date' },
     { key: 'serial', label: 'S.No' },
+    { key: 'type', label: 'Inventory Type' },
+    { key: 'department', label: 'Department' },
     { key: 'itemName', label: 'Items Name' },
     { key: 'purchase', label: 'Total Purchased' },
     { key: 'opening', label: 'Opening Balance' },
@@ -175,7 +177,7 @@ export default function Dashboard() {
           .select(`
             snapshot_date, total_purchased, opening_balance, closing_balance,
             total_issue, total_return, total_damage, total_missing,
-            ${withItemMaster('item_name')}
+            ${withItemMaster('item_name, inventory_type, department')}
           `)
           .order("snapshot_date", { ascending: false })
           .range(page * pageSize, page * pageSize + pageSize - 1);
@@ -188,6 +190,8 @@ export default function Dashboard() {
           date: row.snapshot_date,
           serial: idx + 1,
           name: row.item_master?.item_name,
+          type: row.item_master?.inventory_type,
+          department: row.item_master?.department,
           purchase: parseNumber(row.total_purchased),
           opening: parseNumber(row.opening_balance),
           closing: parseNumber(row.closing_balance),
@@ -444,29 +448,25 @@ export default function Dashboard() {
                       {nameOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
 
-                    {activeTab === "today" && (
-                      <>
-                        <select
-                          value={filterType}
-                          onChange={(e) => setFilterType(e.target.value)}
-                          className="h-8 pl-2 pr-7 bg-slate-50 border border-transparent rounded-xl text-[9.5px] font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer max-w-[110px]"
-                          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
-                        >
-                          <option value="">All Types</option>
-                          {typeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
+                    <select
+                      value={filterType}
+                      onChange={(e) => setFilterType(e.target.value)}
+                      className="h-8 pl-2 pr-7 bg-slate-50 border border-transparent rounded-xl text-[9.5px] font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer max-w-[110px]"
+                      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
+                    >
+                      <option value="">All Types</option>
+                      {typeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
 
-                        <select
-                          value={filterDept}
-                          onChange={(e) => setFilterDept(e.target.value)}
-                          className="h-8 pl-2 pr-7 bg-slate-50 border border-transparent rounded-xl text-[9.5px] font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer max-w-[110px]"
-                          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
-                        >
-                          <option value="">All Dept</option>
-                          {deptOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
-                      </>
-                    )}
+                    <select
+                      value={filterDept}
+                      onChange={(e) => setFilterDept(e.target.value)}
+                      className="h-8 pl-2 pr-7 bg-slate-50 border border-transparent rounded-xl text-[9.5px] font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer max-w-[110px]"
+                      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
+                    >
+                      <option value="">All Dept</option>
+                      {deptOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
 
                     {activeTab === "history" && (
                       <div className="flex flex-wrap items-center gap-1 ml-1 pl-2 border-l border-slate-100">
