@@ -640,7 +640,7 @@ const Inventory = () => {
   useEffect(() => {
     const currentType = isIssueModalOpen ? issueForm.inventoryType : returnForm.inventoryType;
     if (currentType) {
-      const uniqueItems = [...new Set(items.filter(i => i.inventory_type === currentType).map(i => i.item_name))].filter(Boolean);
+      const uniqueItems = [...new Set(items.filter(i => normalizeForMatch(i.inventory_type) === normalizeForMatch(currentType)).map(i => i.item_name))].filter(Boolean);
       setFilteredItems(uniqueItems);
     } else { setFilteredItems([]); }
   }, [issueForm.inventoryType, returnForm.inventoryType, items, isIssueModalOpen, isReturnModalOpen]);
@@ -742,7 +742,7 @@ const Inventory = () => {
   }, [activeTab, filteredIssuedHistory, filteredReturnHistory]);
 
   const validationState = useMemo(() => {
-    if (!issueForm.itemsName || !issueForm.eventDate) return { remaining: 0, isOver: false, committed: 0 };
+    if (!issueForm.itemsName || !issueForm.eventDate) return { remaining: 0, isOver: false, committed: 0, availableForThisGroup: 0 };
 
     const selectedItem = normalizeForMatch(issueForm.itemsName);
     const selectedDate = issueForm.eventDate;
@@ -755,6 +755,9 @@ const Inventory = () => {
 
     const partyVenueMap = {};
     issueHistory.forEach(row => {
+      // Exclude the record currently being edited so its previous quantity is not double counted
+      if (isEditing && editingIssueId && row.id === editingIssueId) return;
+
       const rowItem = normalizeForMatch(row.itemName);
       const rowDate = toInputDate(row.eventDate);
 
@@ -795,9 +798,9 @@ const Inventory = () => {
       remaining: Math.max(0, masterStock - totalCommittedRightNow),
       isOver,
       committed: totalCommittedRightNow,
-      availableForThisGroup: masterStock - committedByOthers
+      availableForThisGroup: Math.max(0, masterStock - committedByOthers)
     };
-  }, [issueHistory, issueForm.itemsName, issueForm.eventDate, issueForm.partyName, issueForm.foodName, issueForm.eventTime, issueForm.issueData, issueForm.openingBalance]);
+  }, [issueHistory, issueForm.itemsName, issueForm.eventDate, issueForm.partyName, issueForm.foodName, issueForm.eventTime, issueForm.issueData, issueForm.openingBalance, isEditing, editingIssueId]);
 
   // Auto-calculate Return Qty and Total Cost
   useEffect(() => {
@@ -924,16 +927,21 @@ const Inventory = () => {
   }, [isReturnModalOpen, isEditing, returnForm.itemsName, returnForm.inventoryType, returnForm.returnDate, issueHistory, returnHistory, items, itemStockMap]);
 
   const handleEditIssue = (row) => {
+    const item = items.find(i => (row.itemId && i.id === row.itemId) || (normalizeForMatch(i.item_name) === normalizeForMatch(row.itemName) && (!row.inventoryType || normalizeForMatch(i.inventory_type) === normalizeForMatch(row.inventoryType))));
+    const resolvedItemId = row.itemId || (item ? item.id : '');
+    const stock = item ? itemStockMap[item.id] : null;
+    const openingStock = stock?.current_stock ?? (row.openingBalance !== undefined && row.openingBalance !== null && row.openingBalance !== '' ? row.openingBalance : 0);
+
     setIssueForm({
       forType: row.forType || 'H3',
       issuer: row.issuer || '',
-      itemId: row.itemId || '',
-      inventoryType: row.inventoryType || '',
-      department: row.department || '',
+      itemId: resolvedItemId,
+      inventoryType: row.inventoryType || (item ? item.inventory_type : ''),
+      department: row.department || (item ? item.department : ''),
       itemsName: row.itemName || '',
-      openingBalance: row.openingBalance !== undefined && row.openingBalance !== null ? String(row.openingBalance) : '',
-      perUnit: row.rentingRate !== undefined && row.rentingRate !== null ? String(row.rentingRate) : '',
-      unit: row.damageRate !== undefined && row.damageRate !== null ? String(row.damageRate) : '',
+      openingBalance: String(openingStock),
+      perUnit: row.rentingRate !== undefined && row.rentingRate !== null ? String(row.rentingRate) : (row.forType === 'H3' ? '0' : String(item?.rental_price ?? 0)),
+      unit: row.damageRate !== undefined && row.damageRate !== null ? String(row.damageRate) : (row.forType === 'H3' ? '0' : String(item?.damage_price ?? 0)),
       eventDate: toInputDate(row.eventDate),
       partyName: row.partyName || '',
       eventTime: row.eventType || '',
@@ -975,12 +983,12 @@ const Inventory = () => {
     if (e) e.preventDefault();
     setIsSubmitting(true);
     try {
-      if (!isEditing && validationState.isOver) {
+      if (validationState.isOver) {
         showToast(`Error: Exceeds available stock for this date (Limit: ${validationState.availableForThisGroup})`, 'error');
         setIsSubmitting(false);
         return;
       }
-      if (!isEditing && !issueForm.itemId) {
+      if (!issueForm.itemId) {
         showToast('Select an item first.', 'error');
         setIsSubmitting(false);
         return;
@@ -992,6 +1000,7 @@ const Inventory = () => {
       const closing = opening - consumed;
 
       const payload = {
+        item_id: issueForm.itemId || null,
         party_name: cleanText(issueForm.partyName) || null,
         event_date: issueForm.eventDate || null,
         issue_qty: consumed,
@@ -1012,7 +1021,6 @@ const Inventory = () => {
         const { error } = await supabase.from(TABLES.ISSUES).update(payload).eq(COLUMNS.ISSUES.ID, editingIssueId);
         if (error) throw new Error(error.message);
       } else {
-        payload.item_id = issueForm.itemId;
         const { error } = await supabase.from(TABLES.ISSUES).insert(payload);
         if (error) throw new Error(error.message);
       }
@@ -1815,7 +1823,7 @@ const Inventory = () => {
                   </div>
                   {isEditing ? (isIssueModalOpen ? 'Edit Issue Record' : 'Edit Return Record') : (isIssueModalOpen ? 'Issue Items to Party' : 'Return Items from Party')}
                 </h2>
-                <button onClick={() => { setIsIssueModalOpen(false); setIsReturnModalOpen(false); setIsEditing(false); }} className="h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 transition-all font-sans"><X className="h-5 w-5" /></button>
+                <button onClick={() => { setIsIssueModalOpen(false); setIsReturnModalOpen(false); setIsEditing(false); setEditingIssueId(null); setEditingReturnId(null); }} className="h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 transition-all font-sans"><X className="h-5 w-5" /></button>
               </div>
 
               <form onSubmit={isIssueModalOpen ? handleIssueSubmit : handleReturnSubmit} className="px-4 sm:px-7 py-4 sm:py-5 space-y-4 flex-1 overflow-y-auto custom-scrollbar font-sans">
@@ -2284,13 +2292,19 @@ const Inventory = () => {
                 )}
 
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                  <button type="button" onClick={() => { setIsIssueModalOpen(false); setIsReturnModalOpen(false); setIsEditing(false); }} className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100">Cancel</button>
+                  <button type="button" onClick={() => { setIsIssueModalOpen(false); setIsReturnModalOpen(false); setIsEditing(false); setEditingIssueId(null); setEditingReturnId(null); }} className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100">Cancel</button>
                   <button
                     type="submit"
                     disabled={isSubmitting || (isIssueModalOpen && validationState.isOver) || (isReturnModalOpen && !returnForm.itemsName)}
                     className={`min-w-[140px] px-10 py-2.5 rounded-xl text-white text-sm font-bold shadow-xl transition-all flex items-center justify-center gap-2 ${isIssueModalOpen ? 'bg-violet-600' : 'bg-fuchsia-600'} hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" /><span>Processing...</span></> : (isIssueModalOpen ? 'Issue Items' : 'Return Items')}
+                    {isSubmitting ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /><span>Processing...</span></>
+                    ) : isEditing ? (
+                      isIssueModalOpen ? 'Update Issue Record' : 'Update Return Record'
+                    ) : (
+                      isIssueModalOpen ? 'Issue Items' : 'Return Items'
+                    )}
                   </button>
                 </div>
               </form>
