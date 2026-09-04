@@ -1332,20 +1332,20 @@ const Inventory = () => {
           headStyles: {
             fillColor: [109, 40, 217],
             textColor: 255,
-            fontSize: 7,
+            fontSize: 9,
             fontStyle: 'bold',
             halign: 'center',
             valign: 'middle',
-            cellPadding: { top: 1, bottom: 1, left: 0.5, right: 0.5 },
+            cellPadding: { top: 1.5, bottom: 1.5, left: 0.5, right: 0.5 },
             overflow: 'linebreak'
           },
           styles: {
-            fontSize: 7.5,
-            cellPadding: { top: 0.8, bottom: 0.8, left: 0.8, right: 0.8 },
+            fontSize: 9.5,
+            cellPadding: { top: 1.3, bottom: 1.3, left: 0.8, right: 0.8 },
             halign: 'center',
             valign: 'middle',
             overflow: 'linebreak',
-            minCellHeight: 5
+            minCellHeight: 6.8
           },
           alternateRowStyles: { fillColor: [249, 250, 251] },
           margin: { top: 14, right: pageMargin, bottom: 16, left: pageMargin },
@@ -1359,7 +1359,7 @@ const Inventory = () => {
                 const dispUrl = getDisplayableImageUrl(url);
                 const b64 = imageMap[dispUrl] || imageMap[url];
                 if (b64) {
-                  const imgSize = Math.min(data.cell.width - 1, data.cell.height - 1, 4.5);
+                  const imgSize = Math.min(data.cell.width - 1, data.cell.height - 1, 6.0);
                   const x = data.cell.x + (data.cell.width - imgSize) / 2;
                   const y = data.cell.y + (data.cell.height - imgSize) / 2;
                   try {
