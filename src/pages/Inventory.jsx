@@ -1201,12 +1201,14 @@ const Inventory = () => {
       return match?.image_url && match.image_url !== 'No Image' ? match.image_url : null;
     };
 
+    const imageUrlMap = {};
     const body = filteredReportData.map((row, index) => {
       const rowData = { sNo: index + 1 };
       columnsToInclude.forEach(col => {
         if (col.key === 'image') {
           const itemImg = getItemImage(row);
-          rowData[col.key] = itemImg || '';
+          imageUrlMap[index] = itemImg || '';
+          rowData[col.key] = '';
         } else {
           let val = row[col.key === 'type' ? 'inventoryType' : col.key === 'item' ? 'itemName' : col.key === 'party' ? 'partyName' : col.key === 'for' ? 'forType' : col.key === 'serial' ? 'serial' : col.key];
           if (['date'].includes(col.key)) {
@@ -1242,7 +1244,7 @@ const Inventory = () => {
           item: 2.3,
           issueQty: 1.1,
           qty: 1.1,
-          image: 1.1,
+          image: 1.0,
           date: 1.4,
           for: 0.8,
           party: 2.2,
@@ -1258,14 +1260,26 @@ const Inventory = () => {
           remark: 1.1
         };
 
-        const totalWeight = reportColumns.reduce((sum, col) => sum + (colWeights[col.dataKey] || 1.0), 0);
+        const hasImage = reportColumns.some(c => c.dataKey === 'image');
+        const nonImageWidth = hasImage ? availableWidth - 10 : availableWidth;
+        const nonImageTotalWeight = reportColumns
+          .filter(c => c.dataKey !== 'image')
+          .reduce((sum, col) => sum + (colWeights[col.dataKey] || 1.0), 0);
+
         const colStyles = {};
         reportColumns.forEach(col => {
-          const weight = colWeights[col.dataKey] || 1.0;
-          colStyles[col.dataKey] = {
-            cellWidth: (availableWidth / totalWeight) * weight,
-            halign: ['item', 'party', 'dishes'].includes(col.dataKey) ? 'left' : 'center'
-          };
+          if (col.dataKey === 'image') {
+            colStyles[col.dataKey] = {
+              cellWidth: 10,
+              halign: 'center'
+            };
+          } else {
+            const weight = colWeights[col.dataKey] || 1.0;
+            colStyles[col.dataKey] = {
+              cellWidth: (nonImageWidth / nonImageTotalWeight) * weight,
+              halign: ['item', 'party', 'dishes'].includes(col.dataKey) ? 'left' : 'center'
+            };
+          }
         });
 
         let imageMap = {};
@@ -1318,41 +1332,41 @@ const Inventory = () => {
           headStyles: {
             fillColor: [109, 40, 217],
             textColor: 255,
-            fontSize: 6.8,
+            fontSize: 7,
             fontStyle: 'bold',
             halign: 'center',
             valign: 'middle',
-            cellPadding: { top: 2, bottom: 2, left: 0.5, right: 0.5 },
+            cellPadding: { top: 1, bottom: 1, left: 0.5, right: 0.5 },
             overflow: 'linebreak'
           },
           styles: {
-            fontSize: 6.5,
-            cellPadding: { top: 1.5, bottom: 1.5, left: 0.8, right: 0.8 },
+            fontSize: 7.5,
+            cellPadding: { top: 0.8, bottom: 0.8, left: 0.8, right: 0.8 },
             halign: 'center',
             valign: 'middle',
             overflow: 'linebreak',
-            minCellHeight: 9
+            minCellHeight: 5
           },
           alternateRowStyles: { fillColor: [249, 250, 251] },
-          rowPageBreak: 'avoid',
           margin: { top: 14, right: pageMargin, bottom: 16, left: pageMargin },
           willDrawCell: (data) => {
             if (data.column.dataKey === 'image' && data.cell.section === 'body') data.cell.text = [];
           },
           didDrawCell: (data) => {
             if (data.column.dataKey === 'image' && data.cell.section === 'body') {
-              const url = data.cell.raw;
-              const dispUrl = getDisplayableImageUrl(url);
-              const b64 = imageMap[dispUrl] || imageMap[url];
-              if (b64) {
-                const padding = 1;
-                const imgSize = Math.min(data.cell.width - padding * 2, data.cell.height - padding * 2, 7.5);
-                const x = data.cell.x + (data.cell.width - imgSize) / 2;
-                const y = data.cell.y + (data.cell.height - imgSize) / 2;
-                try {
-                  doc.addImage(b64, 'JPEG', x, y, imgSize, imgSize);
-                } catch {
-                  try { doc.addImage(b64, x, y, imgSize, imgSize); } catch { /* ignore */ }
+              const url = imageUrlMap[data.row.index];
+              if (url) {
+                const dispUrl = getDisplayableImageUrl(url);
+                const b64 = imageMap[dispUrl] || imageMap[url];
+                if (b64) {
+                  const imgSize = Math.min(data.cell.width - 1, data.cell.height - 1, 4.5);
+                  const x = data.cell.x + (data.cell.width - imgSize) / 2;
+                  const y = data.cell.y + (data.cell.height - imgSize) / 2;
+                  try {
+                    doc.addImage(b64, 'JPEG', x, y, imgSize, imgSize);
+                  } catch {
+                    try { doc.addImage(b64, x, y, imgSize, imgSize); } catch { /* ignore */ }
+                  }
                 }
               }
             }
