@@ -158,6 +158,8 @@ const Inventory = () => {
     returnDate: true,
     damage: true,
     missing: true,
+    issueQty: true,
+    notReturned: true,
     totalCost: true,
     image: true,
     for: true,
@@ -170,7 +172,7 @@ const Inventory = () => {
     { key: 'item', label: 'Item Name' },
     { key: 'qty', label: 'Issue Qty' },
     { key: 'image', label: 'Image' },
-    { key: 'date', label: 'Date' },
+    { key: 'date', label: 'Entry Date' },
     { key: 'for', label: 'For' },
     { key: 'party', label: 'Party Name' },
     { key: 'eventDate', label: 'Event Date' },
@@ -182,14 +184,16 @@ const Inventory = () => {
     { key: 'serial', label: 'Serial' },
     { key: 'type', label: 'Type' },
     { key: 'item', label: 'Item Name' },
+    { key: 'issueQty', label: 'Issue Qty' },
     { key: 'qty', label: 'Return Qty' },
     { key: 'image', label: 'Image' },
-    { key: 'date', label: 'Date' },
+    { key: 'date', label: 'Entry Date' },
     { key: 'for', label: 'For' },
     { key: 'party', label: 'Party Name' },
     { key: 'returnDate', label: 'Return Date' },
     { key: 'damage', label: 'Damage' },
     { key: 'missing', label: 'Missing' },
+    { key: 'notReturned', label: 'Total Not Returned' },
     { key: 'totalCost', label: 'Total Cost' },
     { key: 'actions', label: 'Actions' }
   ];
@@ -433,6 +437,7 @@ const Inventory = () => {
         qty: row.return_qty,
         damage: row.damage_qty,
         missing: row.missing_qty,
+        notReturned: (Number(row.damage_qty || 0) + Number(row.missing_qty || 0)),
         damageRate: row.damage_rate,
         rentingRate: row.renting_rate,
         openingBalance: row.opening_balance,
@@ -1210,8 +1215,10 @@ const Inventory = () => {
             rowData[col.key] = formatDate(val);
           } else if (['estimatedCost', 'totalCost'].includes(col.key)) {
             rowData[col.key] = `Rs ${parseFloat(val || 0).toFixed(2)}`;
+          } else if (col.key === 'notReturned') {
+            rowData[col.key] = (Number(row.damage || 0) + Number(row.missing || 0));
           } else {
-            rowData[col.key] = val || '-';
+            rowData[col.key] = val != null ? val : '-';
           }
         }
       });
@@ -1223,20 +1230,42 @@ const Inventory = () => {
 
     setTimeout(async () => {
       try {
-        const doc = new jsPDF('p', 'mm', 'a4');
+        const doc = new jsPDF('l', 'mm', 'a4');
         const pageWidth = doc.internal.pageSize.width;
+        const pageMargin = 8;
+        const availableWidth = pageWidth - (pageMargin * 2);
 
+        const colWeights = {
+          sNo: 0.6,
+          serial: 1.1,
+          type: 1.2,
+          item: 2.3,
+          issueQty: 1.1,
+          qty: 1.1,
+          image: 1.1,
+          date: 1.4,
+          for: 0.8,
+          party: 2.2,
+          eventDate: 1.4,
+          eventType: 1.3,
+          returnDate: 1.4,
+          damage: 1.2,
+          missing: 1.2,
+          notReturned: 1.5,
+          estimatedCost: 1.4,
+          totalCost: 1.4,
+          dishes: 1.5,
+          remark: 1.1
+        };
+
+        const totalWeight = reportColumns.reduce((sum, col) => sum + (colWeights[col.dataKey] || 1.0), 0);
         const colStyles = {};
-        const availableWidth = pageWidth - 12;
-        const colCount = reportColumns.length;
-        const hasImage = reportColumns.some(c => c.dataKey === 'image');
-        const imgWeight = 1.4;
-        const otherWeight = 1.0;
-        const totalWeight = hasImage ? (colCount - 1) * otherWeight + imgWeight : colCount * otherWeight;
-        const unitWidth = availableWidth / totalWeight;
-
         reportColumns.forEach(col => {
-          colStyles[col.dataKey] = { cellWidth: col.dataKey === 'image' ? unitWidth * imgWeight : unitWidth * otherWeight };
+          const weight = colWeights[col.dataKey] || 1.0;
+          colStyles[col.dataKey] = {
+            cellWidth: (availableWidth / totalWeight) * weight,
+            halign: ['item', 'party', 'dishes'].includes(col.dataKey) ? 'left' : 'center'
+          };
         });
 
         let imageMap = {};
@@ -1250,16 +1279,16 @@ const Inventory = () => {
         const countText = `(${body.length})`;
         doc.setFontSize(14);
         doc.setTextColor(124, 58, 237);
-        doc.text(title, 14, 10);
+        doc.text(title, pageMargin, 10);
 
         const titleWidth = doc.getTextWidth(title);
         doc.setFontSize(9);
         doc.setTextColor(150, 150, 150);
-        doc.text(countText, 14 + titleWidth + 2, 10);
+        doc.text(countText, pageMargin + titleWidth + 2, 10);
 
         doc.setFontSize(7);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth - 14, 10, { align: 'right' });
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth - pageMargin, 10, { align: 'right' });
 
         let currentY = 14;
         doc.setFontSize(8);
@@ -1273,8 +1302,8 @@ const Inventory = () => {
 
         const row1 = `Date: ${dateStr}    For: ${forStr}`;
         const row2 = `Party: ${partyStr}${eventDateStr ? `    Event-Date: ${eventDateStr}` : ''}`;
-        doc.text(row1, 14, 16);
-        doc.text(row2, 14, 21);
+        doc.text(row1, pageMargin, 16);
+        doc.text(row2, pageMargin, 21);
         currentY = 28;
 
         // Yield slightly so UI updates
@@ -1286,11 +1315,27 @@ const Inventory = () => {
           body: body,
           theme: 'grid',
           columnStyles: colStyles,
-          headStyles: { fillColor: [109, 40, 217], textColor: 255, fontSize: 7, fontStyle: 'bold', halign: 'center', cellPadding: 2 },
-          styles: { fontSize: 6, cellPadding: 1.5, halign: 'center', valign: 'middle', overflow: 'ellipsize', minCellHeight: 11.5 },
+          headStyles: {
+            fillColor: [109, 40, 217],
+            textColor: 255,
+            fontSize: 6.8,
+            fontStyle: 'bold',
+            halign: 'center',
+            valign: 'middle',
+            cellPadding: { top: 2, bottom: 2, left: 0.5, right: 0.5 },
+            overflow: 'linebreak'
+          },
+          styles: {
+            fontSize: 6.5,
+            cellPadding: { top: 1.5, bottom: 1.5, left: 0.8, right: 0.8 },
+            halign: 'center',
+            valign: 'middle',
+            overflow: 'linebreak',
+            minCellHeight: 9
+          },
           alternateRowStyles: { fillColor: [249, 250, 251] },
           rowPageBreak: 'avoid',
-          margin: { top: 14, right: 6, bottom: 20, left: 6 },
+          margin: { top: 14, right: pageMargin, bottom: 16, left: pageMargin },
           willDrawCell: (data) => {
             if (data.column.dataKey === 'image' && data.cell.section === 'body') data.cell.text = [];
           },
@@ -1301,7 +1346,7 @@ const Inventory = () => {
               const b64 = imageMap[dispUrl] || imageMap[url];
               if (b64) {
                 const padding = 1;
-                const imgSize = Math.min(data.cell.width - padding * 2, data.cell.height - padding * 2, 8);
+                const imgSize = Math.min(data.cell.width - padding * 2, data.cell.height - padding * 2, 7.5);
                 const x = data.cell.x + (data.cell.width - imgSize) / 2;
                 const y = data.cell.y + (data.cell.height - imgSize) / 2;
                 try {
@@ -1316,7 +1361,7 @@ const Inventory = () => {
             const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
             doc.setFontSize(8);
             doc.setTextColor(120);
-            doc.text(`Page ${pageNumber} of {total_pages_count_string}`, doc.internal.pageSize.width - 6, doc.internal.pageSize.height - 8, { align: 'right' });
+            doc.text(`Page ${pageNumber} of {total_pages_count_string}`, doc.internal.pageSize.width - pageMargin, doc.internal.pageSize.height - 6, { align: 'right' });
           }
         });
 
@@ -1759,6 +1804,13 @@ const Inventory = () => {
                                     <span className="text-red-500 font-bold">{currentData.damage}</span>
                                   ) : col.key === 'missing' ? (
                                     <span className="text-orange-500 font-bold">{currentData.missing}</span>
+                                  ) : col.key === 'issueQty' ? (
+                                    <span className="font-bold text-slate-700">{currentData.issueQty != null ? currentData.issueQty : '-'}</span>
+                                  ) : col.key === 'notReturned' ? (
+                                    (() => {
+                                      const val = (Number(currentData.damage || 0) + Number(currentData.missing || 0));
+                                      return <span className={`font-bold ${val > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{val}</span>;
+                                    })()
                                   ) : col.key === 'item' ? (
                                     <span className="font-bold text-slate-800">{currentData.itemName}</span>
                                   ) : col.key === 'type' ? (
