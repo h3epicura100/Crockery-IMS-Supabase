@@ -1238,30 +1238,30 @@ const Inventory = () => {
         const availableWidth = pageWidth - (pageMargin * 2);
 
         const colWeights = {
-          sNo: 0.6,
-          serial: 1.0,
-          type: 1.1,
-          item: 2.0,
-          issueQty: 0.9,
-          qty: 0.9,
-          image: 0.9,
-          date: 1.2,
-          for: 0.7,
-          party: 1.9,
-          eventDate: 1.2,
-          eventType: 1.1,
-          returnDate: 1.2,
+          sNo: 0.55,
+          serial: 0.95,
+          type: 1.0,
+          item: 1.8,
+          issueQty: 0.75,
+          qty: 0.75,
+          image: 0.8,
+          date: 1.35,
+          for: 0.55,
+          party: 1.7,
+          eventDate: 1.35,
+          eventType: 1.0,
+          returnDate: 1.35,
           damage: 0.9,
           missing: 0.9,
           notReturned: 1.2,
-          estimatedCost: 1.2,
-          totalCost: 1.2,
+          estimatedCost: 1.35,
+          totalCost: 1.35,
           dishes: 1.3,
-          remark: 1.0
+          remark: 0.8
         };
 
         const hasImage = reportColumns.some(c => c.dataKey === 'image');
-        const nonImageWidth = hasImage ? availableWidth - 9 : availableWidth;
+        const nonImageWidth = hasImage ? availableWidth - 8.5 : availableWidth;
         const nonImageTotalWeight = reportColumns
           .filter(c => c.dataKey !== 'image')
           .reduce((sum, col) => sum + (colWeights[col.dataKey] || 1.0), 0);
@@ -1270,7 +1270,7 @@ const Inventory = () => {
         reportColumns.forEach(col => {
           if (col.dataKey === 'image') {
             colStyles[col.dataKey] = {
-              cellWidth: 9,
+              cellWidth: 8.5,
               halign: 'center'
             };
           } else {
@@ -1288,6 +1288,37 @@ const Inventory = () => {
           const displayUrls = rawUrls.map(u => getDisplayableImageUrl(u));
           imageMap = await loadImagesBatched(displayUrls, 12);
         }
+
+        const totalCostSum = filteredReportData.reduce((sum, row) => sum + (parseFloat(row.totalCost) || 0), 0);
+        const totalEstimatedCostSum = filteredReportData.reduce((sum, row) => sum + (parseFloat(row.estimatedCost) || 0), 0);
+        const totalIssueQtySum = filteredReportData.reduce((sum, row) => sum + (Number(row.issueQty) || 0), 0);
+        const totalReturnQtySum = filteredReportData.reduce((sum, row) => sum + (Number(row.qty) || 0), 0);
+        const totalDamageSum = filteredReportData.reduce((sum, row) => sum + (Number(row.damage) || 0), 0);
+        const totalMissingSum = filteredReportData.reduce((sum, row) => sum + (Number(row.missing) || 0), 0);
+        const totalNotReturnedSum = filteredReportData.reduce((sum, row) => sum + (Number(row.damage || 0) + Number(row.missing || 0)), 0);
+
+        const footRow = {};
+        reportColumns.forEach(col => {
+          if (col.dataKey === 'sNo') {
+            footRow[col.dataKey] = 'Total';
+          } else if (col.dataKey === 'totalCost') {
+            footRow[col.dataKey] = `Rs ${totalCostSum.toFixed(2)}`;
+          } else if (col.dataKey === 'estimatedCost') {
+            footRow[col.dataKey] = `Rs ${totalEstimatedCostSum.toFixed(2)}`;
+          } else if (col.dataKey === 'issueQty') {
+            footRow[col.dataKey] = totalIssueQtySum || '-';
+          } else if (col.dataKey === 'qty') {
+            footRow[col.dataKey] = totalReturnQtySum || '-';
+          } else if (col.dataKey === 'damage') {
+            footRow[col.dataKey] = totalDamageSum || '0';
+          } else if (col.dataKey === 'missing') {
+            footRow[col.dataKey] = totalMissingSum || '0';
+          } else if (col.dataKey === 'notReturned') {
+            footRow[col.dataKey] = totalNotReturnedSum || '0';
+          } else {
+            footRow[col.dataKey] = '';
+          }
+        });
 
         const title = `${isIssued ? 'ISSUED' : 'RETURN'} HISTORY REPORT`;
         const countText = `(${body.length})`;
@@ -1326,25 +1357,35 @@ const Inventory = () => {
           startY: currentY,
           columns: reportColumns,
           body: body,
+          foot: [footRow],
           theme: 'grid',
           columnStyles: colStyles,
           headStyles: {
             fillColor: [109, 40, 217],
             textColor: 255,
+            fontSize: 7.0,
+            fontStyle: 'bold',
+            halign: 'center',
+            valign: 'middle',
+            cellPadding: { top: 1.2, bottom: 1.2, left: 0.3, right: 0.3 },
+            overflow: 'linebreak'
+          },
+          footStyles: {
+            fillColor: [237, 233, 254],
+            textColor: [88, 28, 135],
             fontSize: 7.5,
             fontStyle: 'bold',
             halign: 'center',
             valign: 'middle',
-            cellPadding: { top: 1.2, bottom: 1.2, left: 0.4, right: 0.4 },
-            overflow: 'linebreak'
+            cellPadding: { top: 1.2, bottom: 1.2, left: 0.3, right: 0.3 }
           },
           styles: {
-            fontSize: 8,
-            cellPadding: { top: 1.0, bottom: 1.0, left: 0.5, right: 0.5 },
+            fontSize: 7.5,
+            cellPadding: { top: 0.9, bottom: 0.9, left: 0.4, right: 0.4 },
             halign: 'center',
             valign: 'middle',
             overflow: 'linebreak',
-            minCellHeight: 5.5
+            minCellHeight: 5.2
           },
           alternateRowStyles: { fillColor: [249, 250, 251] },
           margin: { top: 12, right: pageMargin, bottom: 14, left: pageMargin },
@@ -1358,7 +1399,7 @@ const Inventory = () => {
                 const dispUrl = getDisplayableImageUrl(url);
                 const b64 = imageMap[dispUrl] || imageMap[url];
                 if (b64) {
-                  const imgSize = Math.min(data.cell.width - 1, data.cell.height - 1, 5.0);
+                  const imgSize = Math.min(data.cell.width - 1, data.cell.height - 1, 4.8);
                   const x = data.cell.x + (data.cell.width - imgSize) / 2;
                   const y = data.cell.y + (data.cell.height - imgSize) / 2;
                   try {
