@@ -1232,36 +1232,36 @@ const Inventory = () => {
 
     setTimeout(async () => {
       try {
-        const doc = new jsPDF('l', 'mm', 'a4');
+        const doc = new jsPDF('p', 'mm', 'a4');
         const pageWidth = doc.internal.pageSize.width;
-        const pageMargin = 8;
+        const pageMargin = 6;
         const availableWidth = pageWidth - (pageMargin * 2);
 
         const colWeights = {
           sNo: 0.6,
-          serial: 1.1,
-          type: 1.2,
-          item: 2.3,
-          issueQty: 1.1,
-          qty: 1.1,
-          image: 1.0,
-          date: 1.4,
-          for: 0.8,
-          party: 2.2,
-          eventDate: 1.4,
-          eventType: 1.3,
-          returnDate: 1.4,
-          damage: 1.2,
-          missing: 1.2,
-          notReturned: 1.5,
-          estimatedCost: 1.4,
-          totalCost: 1.4,
-          dishes: 1.5,
-          remark: 1.1
+          serial: 1.0,
+          type: 1.1,
+          item: 2.0,
+          issueQty: 0.9,
+          qty: 0.9,
+          image: 0.9,
+          date: 1.2,
+          for: 0.7,
+          party: 1.9,
+          eventDate: 1.2,
+          eventType: 1.1,
+          returnDate: 1.2,
+          damage: 0.9,
+          missing: 0.9,
+          notReturned: 1.2,
+          estimatedCost: 1.2,
+          totalCost: 1.2,
+          dishes: 1.3,
+          remark: 1.0
         };
 
         const hasImage = reportColumns.some(c => c.dataKey === 'image');
-        const nonImageWidth = hasImage ? availableWidth - 10 : availableWidth;
+        const nonImageWidth = hasImage ? availableWidth - 9 : availableWidth;
         const nonImageTotalWeight = reportColumns
           .filter(c => c.dataKey !== 'image')
           .reduce((sum, col) => sum + (colWeights[col.dataKey] || 1.0), 0);
@@ -1270,7 +1270,7 @@ const Inventory = () => {
         reportColumns.forEach(col => {
           if (col.dataKey === 'image') {
             colStyles[col.dataKey] = {
-              cellWidth: 10,
+              cellWidth: 9,
               halign: 'center'
             };
           } else {
@@ -1291,21 +1291,20 @@ const Inventory = () => {
 
         const title = `${isIssued ? 'ISSUED' : 'RETURN'} HISTORY REPORT`;
         const countText = `(${body.length})`;
-        doc.setFontSize(14);
+        doc.setFontSize(13);
         doc.setTextColor(124, 58, 237);
-        doc.text(title, pageMargin, 10);
+        doc.text(title, pageMargin, 9);
 
         const titleWidth = doc.getTextWidth(title);
-        doc.setFontSize(9);
+        doc.setFontSize(8.5);
         doc.setTextColor(150, 150, 150);
-        doc.text(countText, pageMargin + titleWidth + 2, 10);
+        doc.text(countText, pageMargin + titleWidth + 2, 9);
 
-        doc.setFontSize(7);
+        doc.setFontSize(6.5);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth - pageMargin, 10, { align: 'right' });
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth - pageMargin, 9, { align: 'right' });
 
-        let currentY = 14;
-        doc.setFontSize(8);
+        doc.setFontSize(7.5);
         doc.setTextColor(60, 60, 60);
         doc.setFont(undefined, 'bold');
 
@@ -1316,9 +1315,9 @@ const Inventory = () => {
 
         const row1 = `Date: ${dateStr}    For: ${forStr}`;
         const row2 = `Party: ${partyStr}${eventDateStr ? `    Event-Date: ${eventDateStr}` : ''}`;
-        doc.text(row1, pageMargin, 16);
-        doc.text(row2, pageMargin, 21);
-        currentY = 28;
+        doc.text(row1, pageMargin, 15);
+        doc.text(row2, pageMargin, 19.5);
+        const currentY = 24;
 
         // Yield slightly so UI updates
         await new Promise(r => setTimeout(r, 20));
@@ -1332,23 +1331,23 @@ const Inventory = () => {
           headStyles: {
             fillColor: [109, 40, 217],
             textColor: 255,
-            fontSize: 9,
+            fontSize: 7.5,
             fontStyle: 'bold',
             halign: 'center',
             valign: 'middle',
-            cellPadding: { top: 1.5, bottom: 1.5, left: 0.5, right: 0.5 },
+            cellPadding: { top: 1.2, bottom: 1.2, left: 0.4, right: 0.4 },
             overflow: 'linebreak'
           },
           styles: {
-            fontSize: 9.5,
-            cellPadding: { top: 1.3, bottom: 1.3, left: 0.8, right: 0.8 },
+            fontSize: 8,
+            cellPadding: { top: 1.0, bottom: 1.0, left: 0.5, right: 0.5 },
             halign: 'center',
             valign: 'middle',
             overflow: 'linebreak',
-            minCellHeight: 6.8
+            minCellHeight: 5.5
           },
           alternateRowStyles: { fillColor: [249, 250, 251] },
-          margin: { top: 14, right: pageMargin, bottom: 16, left: pageMargin },
+          margin: { top: 12, right: pageMargin, bottom: 14, left: pageMargin },
           willDrawCell: (data) => {
             if (data.column.dataKey === 'image' && data.cell.section === 'body') data.cell.text = [];
           },
@@ -1359,7 +1358,7 @@ const Inventory = () => {
                 const dispUrl = getDisplayableImageUrl(url);
                 const b64 = imageMap[dispUrl] || imageMap[url];
                 if (b64) {
-                  const imgSize = Math.min(data.cell.width - 1, data.cell.height - 1, 6.0);
+                  const imgSize = Math.min(data.cell.width - 1, data.cell.height - 1, 5.0);
                   const x = data.cell.x + (data.cell.width - imgSize) / 2;
                   const y = data.cell.y + (data.cell.height - imgSize) / 2;
                   try {
@@ -1373,9 +1372,9 @@ const Inventory = () => {
           },
           didDrawPage: function () {
             const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
-            doc.setFontSize(8);
+            doc.setFontSize(7.5);
             doc.setTextColor(120);
-            doc.text(`Page ${pageNumber} of {total_pages_count_string}`, doc.internal.pageSize.width - pageMargin, doc.internal.pageSize.height - 6, { align: 'right' });
+            doc.text(`Page ${pageNumber} of {total_pages_count_string}`, doc.internal.pageSize.width - pageMargin, doc.internal.pageSize.height - 5, { align: 'right' });
           }
         });
 
