@@ -61,6 +61,8 @@ const Inventory = () => {
   const returnItemDropdownRef = useRef(null);
   const [showPartyDropdown, setShowPartyDropdown] = useState(false);
   const partyDropdownRef = useRef(null);
+  const [showReturnPartyDropdown, setShowReturnPartyDropdown] = useState(false);
+  const returnPartyDropdownRef = useRef(null);
   const [lastReturnInfo, setLastReturnInfo] = useState({ date: '-', qty: '-' });
   const [filteredItems, setFilteredItems] = useState([]);
 
@@ -129,17 +131,106 @@ const Inventory = () => {
     itemId: '', inventoryType: '', department: '', itemsName: '', openingBalance: '', damageRate: '0', rentingRate: '0', totalCost: '0', partyName: '', eventDate: '', returnData: '0', returnDate: new Date().toISOString().split('T')[0], issueQty: '0', damageItems: '0', missingItems: '0', closingBalance: '', remarks: '', imageUrl: '', forType: ''
   });
 
+  // Cascading return dropdown options driven by issueHistory and returnHistory
   const returnInvTypeOptions = useMemo(() => {
-    return [...new Set(items.map(i => i.inventory_type).filter(Boolean))].sort();
-  }, [items]);
+    if (!returnForm.partyName) {
+      // No party selected: show all types from items master
+      return [...new Set(items.map(i => i.inventory_type).filter(Boolean))].sort();
+    }
+    const partyNorm = normalizeForMatch(returnForm.partyName);
+    const typesIssued = [...new Set(
+      issueHistory
+        .filter(r => normalizeForMatch(r.partyName) === partyNorm)
+        .map(r => r.inventoryType)
+        .filter(Boolean)
+    )];
+
+    // Filter to inventory types that have at least one item with pending return qty
+    const typesWithPendingItems = typesIssued.filter(invType => {
+      const typeNorm = normalizeForMatch(invType);
+      const itemsForType = [...new Set(
+        issueHistory
+          .filter(r => normalizeForMatch(r.partyName) === partyNorm && normalizeForMatch(r.inventoryType) === typeNorm)
+          .map(r => r.itemName)
+          .filter(Boolean)
+      )];
+
+      return itemsForType.some(itemName => {
+        const itemNorm = normalizeForMatch(itemName);
+        const totalIssued = issueHistory
+          .filter(r => 
+            normalizeForMatch(r.partyName) === partyNorm && 
+            normalizeForMatch(r.itemName) === itemNorm &&
+            (!r.inventoryType || normalizeForMatch(r.inventoryType) === typeNorm)
+          )
+          .reduce((sum, r) => sum + (parseNumber(r.qty) || 0), 0);
+
+        const totalReturned = returnHistory
+          .filter(r => 
+            normalizeForMatch(r.partyName) === partyNorm && 
+            normalizeForMatch(r.itemName) === itemNorm &&
+            (!r.inventoryType || normalizeForMatch(r.inventoryType) === typeNorm)
+          )
+          .reduce((sum, r) => {
+            const retQty = parseNumber(r.qty);
+            const dmgQty = parseNumber(r.damage);
+            const misQty = parseNumber(r.missing);
+            const issQty = parseNumber(r.issueQty);
+            return sum + Math.max(retQty + dmgQty + misQty, issQty, retQty);
+          }, 0);
+
+        return totalIssued > totalReturned;
+      });
+    });
+
+    return (typesWithPendingItems.length > 0 ? typesWithPendingItems : typesIssued).sort();
+  }, [items, issueHistory, returnHistory, returnForm.partyName]);
 
   const returnItemOptions = useMemo(() => {
     if (!returnForm.inventoryType) return [];
-    return items
-      .filter(i => i.inventory_type === returnForm.inventoryType && i.item_name)
-      .map(i => i.item_name)
-      .sort();
-  }, [items, returnForm.inventoryType]);
+    const typeNorm = normalizeForMatch(returnForm.inventoryType);
+    if (!returnForm.partyName) {
+      // No party: fall back to all items of that type
+      return [...new Set(
+        items.filter(i => normalizeForMatch(i.inventory_type) === typeNorm && i.item_name).map(i => i.item_name)
+      )].sort();
+    }
+    const partyNorm = normalizeForMatch(returnForm.partyName);
+    const candidateItems = [...new Set(
+      issueHistory
+        .filter(r => normalizeForMatch(r.partyName) === partyNorm && normalizeForMatch(r.inventoryType) === typeNorm)
+        .map(r => r.itemName)
+        .filter(Boolean)
+    )];
+
+    return candidateItems.filter(itemName => {
+      const itemNorm = normalizeForMatch(itemName);
+
+      const totalIssued = issueHistory
+        .filter(r => 
+          normalizeForMatch(r.partyName) === partyNorm && 
+          normalizeForMatch(r.itemName) === itemNorm &&
+          (!r.inventoryType || normalizeForMatch(r.inventoryType) === typeNorm)
+        )
+        .reduce((sum, r) => sum + (parseNumber(r.qty) || 0), 0);
+
+      const totalReturned = returnHistory
+        .filter(r => 
+          normalizeForMatch(r.partyName) === partyNorm && 
+          normalizeForMatch(r.itemName) === itemNorm &&
+          (!r.inventoryType || normalizeForMatch(r.inventoryType) === typeNorm)
+        )
+        .reduce((sum, r) => {
+          const retQty = parseNumber(r.qty);
+          const dmgQty = parseNumber(r.damage);
+          const misQty = parseNumber(r.missing);
+          const issQty = parseNumber(r.issueQty);
+          return sum + Math.max(retQty + dmgQty + misQty, issQty, retQty);
+        }, 0);
+
+      return totalIssued > totalReturned;
+    }).sort();
+  }, [items, issueHistory, returnHistory, returnForm.partyName, returnForm.inventoryType]);
 
   const [matchingIssuedRows, setMatchingIssuedRows] = useState([]);
 
@@ -205,6 +296,9 @@ const Inventory = () => {
       }
       if (partyDropdownRef.current && !partyDropdownRef.current.contains(event.target)) {
         setShowPartyDropdown(false);
+      }
+      if (returnPartyDropdownRef.current && !returnPartyDropdownRef.current.contains(event.target)) {
+        setShowReturnPartyDropdown(false);
       }
       if (returnInvTypeDropdownRef.current && !returnInvTypeDropdownRef.current.contains(event.target)) {
         setShowReturnInvTypeDropdown(false);
@@ -857,19 +951,32 @@ const Inventory = () => {
     }
 
     const selectedItem = returnForm.itemsName;
-    const currentReturnDateStr = returnForm.returnDate;
-    if (!currentReturnDateStr) return;
+    const selectedParty = returnForm.partyName;
+    const selectedType = returnForm.inventoryType;
 
-    const itemReturns = returnHistory.filter(row => row.itemName === selectedItem);
-    let lastReturnDate = new Date('1970-01-01');
+    const partyNorm = normalizeForMatch(selectedParty);
+    const itemNorm = normalizeForMatch(selectedItem);
+    const typeNorm = normalizeForMatch(selectedType);
+
+    // 1. Last return info for this item (prefer matching party if available)
+    const matchingPartyReturns = returnHistory.filter(row =>
+      normalizeForMatch(row.itemName) === itemNorm &&
+      partyNorm && normalizeForMatch(row.partyName) === partyNorm
+    );
+    const allItemReturns = returnHistory.filter(row =>
+      normalizeForMatch(row.itemName) === itemNorm
+    );
+
+    const relevantReturns = matchingPartyReturns.length > 0 ? matchingPartyReturns : allItemReturns;
     let latestReturnRow = null;
+    let maxReturnDate = new Date('1970-01-01');
 
-    itemReturns.forEach(row => {
+    relevantReturns.forEach(row => {
       const rDateStr = toInputDate(row.returnDate);
       if (rDateStr) {
         const d = new Date(rDateStr);
-        if (!isNaN(d) && d > lastReturnDate) {
-          lastReturnDate = d;
+        if (!isNaN(d) && d >= maxReturnDate) {
+          maxReturnDate = d;
           latestReturnRow = row;
         }
       }
@@ -878,44 +985,52 @@ const Inventory = () => {
     if (latestReturnRow) {
       setLastReturnInfo({
         date: formatDate(latestReturnRow.returnDate),
-        qty: latestReturnRow.qty || '0'
+        qty: String(latestReturnRow.qty || '0')
       });
     } else {
       setLastReturnInfo({ date: 'No return history', qty: '0' });
     }
 
-    const returnDate = new Date(currentReturnDateStr);
-    const yesterday = new Date(returnDate);
-    yesterday.setDate(yesterday.getDate() - 1);
-
+    // 2. Find matching issues for this item & party
     const matchingIssues = issueHistory.filter(row => {
-      if (row.itemName !== selectedItem) return false;
-      const eventDateStr = toInputDate(row.eventDate);
-      if (!eventDateStr) return false;
-      const eventDate = new Date(eventDateStr);
-      if (isNaN(eventDate)) return false;
-      return eventDate > lastReturnDate && eventDate <= yesterday;
+      if (normalizeForMatch(row.itemName) !== itemNorm) return false;
+      if (partyNorm && normalizeForMatch(row.partyName) !== partyNorm) return false;
+      if (typeNorm && normalizeForMatch(row.inventoryType) !== typeNorm) return false;
+      return true;
     });
 
     matchingIssues.sort((a, b) => new Date(toInputDate(a.eventDate)) - new Date(toInputDate(b.eventDate)));
 
     setMatchingIssuedRows(matchingIssues);
 
-    const maxQty = matchingIssues.length > 0
-      ? Math.max(...matchingIssues.map(row => parseNumber(row.qty)))
-      : 0;
+    const isSingleRow = matchingIssues.length === 1;
+    const totalIssued = matchingIssues.reduce((sum, r) => sum + (parseNumber(r.qty) || 0), 0);
+    const totalReturned = matchingPartyReturns.reduce((sum, r) => {
+      const retQty = parseNumber(r.qty);
+      const dmgQty = parseNumber(r.damage);
+      const misQty = parseNumber(r.missing);
+      const issQty = parseNumber(r.issueQty);
+      return sum + Math.max(retQty + dmgQty + misQty, issQty, retQty);
+    }, 0);
+    const pendingQty = Math.max(0, totalIssued - totalReturned);
+
+    const resolvedIssueQty = pendingQty > 0
+      ? pendingQty
+      : (isSingleRow
+          ? parseNumber(matchingIssues[0].qty)
+          : (matchingIssues.length > 0 ? Math.max(...matchingIssues.map(row => parseNumber(row.qty))) : 0));
 
     const latestIssue = matchingIssues[matchingIssues.length - 1];
     const chainForType = latestIssue ? (latestIssue.forType || 'Rent') : 'Rent';
-    const item = items.find(i => normalizeForMatch(i.item_name) === normalizeForMatch(selectedItem));
+    const item = items.find(i => normalizeForMatch(i.item_name) === itemNorm);
     const rentingRate = chainForType === 'H3' ? 0 : (item ? parseNumber(item.rental_price) : 0);
 
     setReturnForm(prev => {
       const openingStock = Number(prev.openingBalance || 0);
-      const newClosingBalance = (openingStock - maxQty).toString();
+      const newClosingBalance = (openingStock - resolvedIssueQty).toString();
 
       if (
-        prev.issueQty === maxQty.toString() &&
+        prev.issueQty === resolvedIssueQty.toString() &&
         prev.forType === chainForType &&
         prev.rentingRate === rentingRate.toString() &&
         prev.closingBalance === newClosingBalance
@@ -923,13 +1038,13 @@ const Inventory = () => {
 
       return {
         ...prev,
-        issueQty: maxQty.toString(),
+        issueQty: resolvedIssueQty.toString(),
         forType: chainForType,
         rentingRate: rentingRate.toString(),
         closingBalance: newClosingBalance
       };
     });
-  }, [isReturnModalOpen, isEditing, returnForm.itemsName, returnForm.inventoryType, returnForm.returnDate, issueHistory, returnHistory, items, itemStockMap]);
+  }, [isReturnModalOpen, isEditing, returnForm.itemsName, returnForm.partyName, returnForm.inventoryType, returnForm.returnDate, issueHistory, returnHistory, items, itemStockMap]);
 
   const handleEditIssue = (row) => {
     const item = items.find(i => (row.itemId && i.id === row.itemId) || (normalizeForMatch(i.item_name) === normalizeForMatch(row.itemName) && (!row.inventoryType || normalizeForMatch(i.inventory_type) === normalizeForMatch(row.inventoryType))));
@@ -2049,9 +2164,54 @@ const Inventory = () => {
 
                 {isReturnModalOpen && !isEditing && (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                    <div className="space-y-1">
+                    <div className="space-y-1 relative" ref={returnPartyDropdownRef}>
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Party-Month *</label>
-                      <input type="text" value={returnForm.partyName} onChange={(e) => setReturnForm(p => ({ ...p, partyName: e.target.value }))} placeholder="e.g. May 2026" required className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white" />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={returnForm.partyName}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setReturnForm(p => ({ ...p, partyName: val }));
+                            setShowReturnPartyDropdown(true);
+                          }}
+                          onFocus={() => setShowReturnPartyDropdown(true)}
+                          placeholder="e.g. 6TH SEPTEMBER"
+                          required
+                          className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowReturnPartyDropdown(!showReturnPartyDropdown)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-violet-600 transition-colors"
+                        >
+                          <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showReturnPartyDropdown ? 'rotate-180' : ''}`} />
+                        </button>
+                      </div>
+
+                      {showReturnPartyDropdown && (
+                        <div className="absolute z-[160] w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
+                           {uniquePartyOptions
+                            .filter(opt => !returnForm.partyName || opt.toLowerCase().includes(returnForm.partyName.toLowerCase()))
+                            .map((opt, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => {
+                                  // Reset cascaded fields when party changes
+                                  setReturnForm(p => ({ ...p, partyName: opt, inventoryType: '', itemsName: '', itemId: '' }));
+                                  setShowReturnPartyDropdown(false);
+                                }}
+                                className="w-full px-4 py-2.5 text-left text-sm font-bold text-slate-600 hover:bg-violet-50 hover:text-violet-600 transition-colors border-b border-slate-50 last:border-0"
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          {uniquePartyOptions.filter(opt => !returnForm.partyName || opt.toLowerCase().includes(returnForm.partyName.toLowerCase())).length === 0 && (
+                            <div className="px-4 py-3 text-xs font-bold text-slate-400 italic text-center">No matching parties</div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-1 relative" ref={returnInvTypeDropdownRef}>
@@ -2067,10 +2227,11 @@ const Inventory = () => {
                           }}
                           onFocus={() => setShowReturnInvTypeDropdown(true)}
                           required
-                          placeholder="Type or select..."
-                          className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white"
+                          disabled={!returnForm.partyName}
+                          placeholder={returnForm.partyName ? 'Type or select...' : 'Select party first'}
+                          className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white disabled:bg-slate-50 disabled:text-slate-400"
                         />
-                        <button type="button" onClick={() => setShowReturnInvTypeDropdown(!showReturnInvTypeDropdown)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-violet-600 transition-colors">
+                        <button type="button" disabled={!returnForm.partyName} onClick={() => setShowReturnInvTypeDropdown(!showReturnInvTypeDropdown)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-violet-600 transition-colors disabled:opacity-50">
                           <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showReturnInvTypeDropdown ? 'rotate-180' : ''}`} />
                         </button>
                       </div>
@@ -2085,7 +2246,7 @@ const Inventory = () => {
                               </button>
                             ))}
                           {returnInvTypeOptions.filter(opt => !returnForm.inventoryType || opt.toLowerCase().includes(returnForm.inventoryType.toLowerCase())).length === 0 && (
-                            <div className="px-4 py-3 text-xs font-bold text-slate-400 italic text-center">No matching types</div>
+                            <div className="px-4 py-3 text-xs font-bold text-slate-400 italic text-center">No pending inventory types for this party</div>
                           )}
                         </div>
                       )}
@@ -2104,11 +2265,11 @@ const Inventory = () => {
                           }}
                           onFocus={() => setShowReturnItemDropdown(true)}
                           required
-                          disabled={!returnForm.inventoryType}
-                          placeholder={returnForm.inventoryType ? "Type or select..." : "Select type first"}
+                          disabled={!returnForm.inventoryType || !returnForm.partyName}
+                          placeholder={!returnForm.partyName ? 'Select party first' : !returnForm.inventoryType ? 'Select type first' : 'Type or select...'}
                           className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white disabled:bg-slate-50 disabled:text-slate-400"
                         />
-                        <button type="button" disabled={!returnForm.inventoryType} onClick={() => setShowReturnItemDropdown(!showReturnItemDropdown)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-violet-600 transition-colors disabled:opacity-50">
+                        <button type="button" disabled={!returnForm.inventoryType || !returnForm.partyName} onClick={() => setShowReturnItemDropdown(!showReturnItemDropdown)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-violet-600 transition-colors disabled:opacity-50">
                           <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showReturnItemDropdown ? 'rotate-180' : ''}`} />
                         </button>
                       </div>
@@ -2123,7 +2284,7 @@ const Inventory = () => {
                               </button>
                             ))}
                           {returnItemOptions.filter(opt => !returnForm.itemsName || opt.toLowerCase().includes(returnForm.itemsName.toLowerCase())).length === 0 && (
-                            <div className="px-4 py-3 text-xs font-bold text-slate-400 italic text-center">No matching items</div>
+                            <div className="px-4 py-3 text-xs font-bold text-slate-400 italic text-center">No pending items to return for this party &amp; type</div>
                           )}
                         </div>
                       )}
