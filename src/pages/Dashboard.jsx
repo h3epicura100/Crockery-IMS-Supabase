@@ -170,37 +170,36 @@ export default function Dashboard() {
 
   const [todayPage, setTodayPage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
-  const [historyCount, setHistoryCount] = useState(0);
 
-  const fetchHistoryData = useCallback(async (page = 1) => {
+  const fetchHistoryData = useCallback(async () => {
     setHistoryLoading(true);
     try {
-      let query = supabase
-        .from(TABLES.INVENTORY_DAILY_SNAPSHOT)
-        .select(`
-          snapshot_date, total_purchased, opening_balance, closing_balance,
-          total_issue, total_return, total_damage, total_missing,
-          ${withItemMaster('item_name, inventory_type, department')}
-        `, { count: 'exact' });
+      let all = [];
+      const pageSize = 1000;
+      for (let page = 0; ; page++) {
+        let q = supabase
+          .from(TABLES.INVENTORY_DAILY_SNAPSHOT)
+          .select(`
+            id, snapshot_date, total_purchased, opening_balance, closing_balance,
+            total_issue, total_return, total_damage, total_missing,
+            ${withItemMaster('item_name, inventory_type, department')}
+          `)
+          .order("snapshot_date", { ascending: false })
+          .range(page * pageSize, page * pageSize + pageSize - 1);
 
-      if (startDate) query = query.gte("snapshot_date", startDate);
-      if (endDate) query = query.lte("snapshot_date", endDate);
-      if (filterType) query = query.filter("item_master.inventory_type", "eq", filterType);
-      if (filterDept) query = query.filter("item_master.department", "eq", filterDept);
-      if (filterName) query = query.filter("item_master.item_name", "eq", filterName);
+        if (startDate) q = q.gte("snapshot_date", startDate);
+        if (endDate) q = q.lte("snapshot_date", endDate);
 
-      query = query
-        .order("snapshot_date", { ascending: false })
-        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+        const { data, error } = await q;
+        if (error) throw error;
+        all = all.concat(data || []);
+        if (!data || data.length < pageSize) break;
+      }
 
-      const { data, count, error } = await query;
-      if (error) throw error;
-
-      setHistoryCount(count || 0);
-      setHistoryData((data || []).map((row, idx) => ({
-        id: `hist-${(page - 1) * PAGE_SIZE + idx}`,
+      setHistoryData(all.map((row, idx) => ({
+        id: row.id || `hist-${idx}`,
         date: row.snapshot_date,
-        serial: (page - 1) * PAGE_SIZE + idx + 1,
+        serial: idx + 1,
         name: row.item_master?.item_name,
         type: row.item_master?.inventory_type,
         department: row.item_master?.department,
@@ -217,135 +216,67 @@ export default function Dashboard() {
     } finally {
       setHistoryLoading(false);
     }
-  }, [startDate, endDate, filterType, filterDept, filterName]);
-
-  const [historyStats, setHistoryStats] = useState({ p: 0, o: 0, i: 0, r: 0, d: 0, m: 0 });
-
-  const fetchHistoryTotals = useCallback(async () => {
-    try {
-      let query = supabase
-        .from(TABLES.INVENTORY_DAILY_SNAPSHOT)
-        .select(`
-          total_purchased, opening_balance,
-          total_issue, total_return, total_damage, total_missing,
-          ${withItemMaster('item_name, inventory_type, department')}
-        `);
-
-      if (startDate) query = query.gte("snapshot_date", startDate);
-      if (endDate) query = query.lte("snapshot_date", endDate);
-      if (filterType) query = query.filter("item_master.inventory_type", "eq", filterType);
-      if (filterDept) query = query.filter("item_master.department", "eq", filterDept);
-      if (filterName) query = query.filter("item_master.item_name", "eq", filterName);
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      let totals = { p: 0, o: 0, i: 0, r: 0, d: 0, m: 0 };
-      (data || []).forEach(row => {
-        totals.p += parseNumber(row.total_purchased);
-        totals.o += parseNumber(row.opening_balance);
-        totals.i += parseNumber(row.total_issue);
-        totals.r += parseNumber(row.total_return);
-        totals.d += parseNumber(row.total_damage);
-        totals.m += parseNumber(row.total_missing);
-      });
-      setHistoryStats(totals);
-    } catch (err) {
-      console.error("Failed to fetch history totals:", err);
-    }
-  }, [startDate, endDate, filterType, filterDept, filterName]);
+  }, [startDate, endDate]);
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
   useEffect(() => {
-    setTodayPage(1);
-    setHistoryPage(1);
     if (activeTab === "history") {
-      fetchHistoryData(1);
-      fetchHistoryTotals();
+      fetchHistoryData();
     }
-  }, [activeTab, filterType, filterDept, filterName, startDate, endDate, fetchHistoryData, fetchHistoryTotals]);
+  }, [activeTab, fetchHistoryData]);
 
   useEffect(() => {
-    if (activeTab === "history") {
-      fetchHistoryData(historyPage);
-    }
-  }, [historyPage, activeTab, fetchHistoryData]);
+    setTodayPage(1);
+    setHistoryPage(1);
+  }, [activeTab, filterType, filterDept, filterName, startDate, endDate, searchTerm]);
 
-  const currentData = activeTab === "today" ? inventoryData : historyData;
   const columnConfig = activeTab === "today" ? todayColumns : historyColumns;
 
   // FACETED FILTERING HELPER FUNCTIONS
   const rowMatchesSearch = useCallback((item, term) => {
     if (!term.trim()) return true;
     const s = normalizeForMatch(term);
-    return normalizeForMatch(item.inventoryNo).includes(s) ||
-           normalizeForMatch(item.type).includes(s) ||
-           normalizeForMatch(item.department).includes(s) ||
-           normalizeForMatch(item.name).includes(s);
+    return [item.name, item.type, item.department].some(v => v && normalizeForMatch(v).includes(s));
   }, []);
 
-  const dateMatchesRange = useCallback((dateStr, start, end) => {
-    if (!start && !end) return true;
-    if (!dateStr) return false;
-
-    let d, m, y;
-    if (dateStr.includes("/")) {
-      [d, m, y] = dateStr.split(" ")[0].split("/");
-    } else {
-      const dateObj = new Date(dateStr);
-      if (isNaN(dateObj)) return false;
-      d = dateObj.getDate();
-      m = dateObj.getMonth() + 1;
-      y = dateObj.getFullYear();
-    }
-    
-    // Create UTC-safe dates for comparison
-    const itemDate = new Date(y, m - 1, d);
-    itemDate.setHours(0,0,0,0);
-
-    if (start) {
-      const s = new Date(start);
-      s.setHours(0,0,0,0);
-      if (itemDate < s) return false;
-    }
-    if (end) {
-      const e = new Date(end);
-      e.setHours(23,59,59,999);
-      if (itemDate > e) return false;
-    }
-    return true;
-  }, []);
+  const activeSource = activeTab === "today" ? inventoryData : historyData;
 
   // FACETED OPTIONS CALCULATION
   const typeOptions = useMemo(() => {
-    const source = inventoryData.length > 0 ? inventoryData : currentData;
-    const filtered = source.filter(item => {
-      return (!filterDept || item.department === filterDept) &&
-             (!filterName || item.name === filterName);
+    const s = normalizeForMatch(searchTerm);
+    const filtered = activeSource.filter(item => {
+      const matchesSearch = !s || [item.name, item.type, item.department].some(v => v && normalizeForMatch(v).includes(s));
+      const matchesDept = !filterDept || item.department === filterDept;
+      const matchesName = !filterName || item.name === filterName;
+      return matchesSearch && matchesDept && matchesName;
     });
     return [...new Set(filtered.map(item => item.type).filter(Boolean))].sort();
-  }, [inventoryData, currentData, filterDept, filterName]);
+  }, [activeSource, searchTerm, filterDept, filterName]);
 
   const deptOptions = useMemo(() => {
-    const source = inventoryData.length > 0 ? inventoryData : currentData;
-    const filtered = source.filter(item => {
-      return (!filterType || item.type === filterType) &&
-             (!filterName || item.name === filterName);
+    const s = normalizeForMatch(searchTerm);
+    const filtered = activeSource.filter(item => {
+      const matchesSearch = !s || [item.name, item.type, item.department].some(v => v && normalizeForMatch(v).includes(s));
+      const matchesType = !filterType || item.type === filterType;
+      const matchesName = !filterName || item.name === filterName;
+      return matchesSearch && matchesType && matchesName;
     });
     return [...new Set(filtered.map(item => item.department).filter(Boolean))].sort();
-  }, [inventoryData, currentData, filterType, filterName]);
+  }, [activeSource, searchTerm, filterType, filterName]);
 
   const nameOptions = useMemo(() => {
-    const source = inventoryData.length > 0 ? inventoryData : currentData;
-    const filtered = source.filter(item => {
-      return (!filterType || item.type === filterType) &&
-             (!filterDept || item.department === filterDept);
+    const s = normalizeForMatch(searchTerm);
+    const filtered = activeSource.filter(item => {
+      const matchesSearch = !s || [item.name, item.type, item.department].some(v => v && normalizeForMatch(v).includes(s));
+      const matchesType = !filterType || item.type === filterType;
+      const matchesDept = !filterDept || item.department === filterDept;
+      return matchesSearch && matchesType && matchesDept;
     });
     return [...new Set(filtered.map(item => item.name).filter(Boolean))].sort();
-  }, [inventoryData, currentData, filterType, filterDept]);
+  }, [activeSource, searchTerm, filterType, filterDept]);
 
   // MAIN FILTERED DATA FOR TODAY TAB
   const filteredData = useMemo(() => {
@@ -362,17 +293,23 @@ export default function Dashboard() {
     return filteredData.slice(start, start + PAGE_SIZE);
   }, [filteredData, todayPage]);
 
+  // MAIN FILTERED DATA FOR HISTORY TAB
+  const filteredHistoryData = useMemo(() => {
+    return historyData.filter(item => {
+      return rowMatchesSearch(item, searchTerm) &&
+             (!filterType || item.type === filterType) &&
+             (!filterDept || item.department === filterDept) &&
+             (!filterName || item.name === filterName);
+    });
+  }, [historyData, searchTerm, filterType, filterDept, filterName, rowMatchesSearch]);
+
   const displayedHistoryData = useMemo(() => {
-    if (!searchTerm.trim()) return historyData;
-    const s = normalizeForMatch(searchTerm);
-    return historyData.filter(item =>
-      normalizeForMatch(item.name).includes(s) ||
-      normalizeForMatch(item.type).includes(s) ||
-      normalizeForMatch(item.department).includes(s)
-    );
-  }, [historyData, searchTerm]);
+    const start = (historyPage - 1) * PAGE_SIZE;
+    return filteredHistoryData.slice(start, start + PAGE_SIZE);
+  }, [filteredHistoryData, historyPage]);
 
   const displayList = activeTab === "today" ? displayedTodayData : displayedHistoryData;
+  const currentFilteredData = activeTab === "today" ? filteredData : filteredHistoryData;
 
   const handleExportPDF = async () => {
     if (isExporting) return;
@@ -400,19 +337,8 @@ export default function Dashboard() {
   };
 
   const dashboardStats = useMemo(() => {
-    if (activeTab === "history") {
-      return {
-        totalPurchased: historyStats.p,
-        openingBalance: historyStats.o,
-        totalIssued: historyStats.i,
-        totalReturned: historyStats.r,
-        totalDamaged: historyStats.d,
-        totalMissing: historyStats.m
-      };
-    }
-
     let totals = { p: 0, o: 0, i: 0, r: 0, d: 0, m: 0 };
-    filteredData.forEach(item => {
+    currentFilteredData.forEach(item => {
       totals.p += item.purchase || 0;
       totals.o += item.opening || 0;
       totals.i += item.issue || 0;
@@ -428,7 +354,7 @@ export default function Dashboard() {
       totalDamaged: totals.d,
       totalMissing: totals.m
     };
-  }, [activeTab, historyStats, filteredData]);
+  }, [currentFilteredData]);
 
   // eslint-disable-next-line no-unused-vars
   const MetricCard = ({ title, value, icon: Icon, color, loading: cardLoading }) => (
@@ -466,10 +392,10 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 px-3 sm:px-6">
-            <MetricCard title="Total Purchased" value={formatNumber(dashboardStats.totalPurchased)} icon={Package} color="bg-violet-600" loading={loading} />
-            <MetricCard title="Opening Balance" value={formatNumber(dashboardStats.openingBalance)} icon={Layout} color="bg-fuchsia-600" loading={loading} />
-            <MetricCard title="Total Issued" value={formatNumber(dashboardStats.totalIssued)} icon={Activity} color="bg-blue-500" loading={loading} />
-            <MetricCard title="Total Returned" value={formatNumber(dashboardStats.totalReturned)} icon={RefreshCw} color="bg-emerald-500" loading={loading} />
+            <MetricCard title="Total Purchased" value={formatNumber(dashboardStats.totalPurchased)} icon={Package} color="bg-violet-600" loading={activeTab === "today" ? loading : historyLoading} />
+            <MetricCard title="Opening Balance" value={formatNumber(dashboardStats.openingBalance)} icon={Layout} color="bg-fuchsia-600" loading={activeTab === "today" ? loading : historyLoading} />
+            <MetricCard title="Total Issued" value={formatNumber(dashboardStats.totalIssued)} icon={Activity} color="bg-blue-500" loading={activeTab === "today" ? loading : historyLoading} />
+            <MetricCard title="Total Returned" value={formatNumber(dashboardStats.totalReturned)} icon={RefreshCw} color="bg-emerald-500" loading={activeTab === "today" ? loading : historyLoading} />
           </div>
 
           <div className="bg-white mx-3 sm:mx-6 mb-6 rounded-xl border border-slate-100 shadow-sm flex flex-col flex-1 min-h-0 relative">
@@ -675,7 +601,7 @@ export default function Dashboard() {
 
             <Pagination
               currentPage={activeTab === "today" ? todayPage : historyPage}
-              totalCount={activeTab === "today" ? filteredData.length : historyCount}
+              totalCount={activeTab === "today" ? filteredData.length : filteredHistoryData.length}
               pageSize={PAGE_SIZE}
               onPageChange={activeTab === "today" ? setTodayPage : setHistoryPage}
               isLoading={loading || historyLoading}

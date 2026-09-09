@@ -280,68 +280,25 @@ export default function Stock() {
   };
 
   const [purchasePage, setPurchasePage] = useState(1);
-  const [purchaseCount, setPurchaseCount] = useState(0);
-  const [totalPurchaseCost, setTotalPurchaseCost] = useState(0);
-
   const [repurchasePage, setRepurchasePage] = useState(1);
-  const [repurchaseCount, setRepurchaseCount] = useState(0);
-  const [totalRepurchaseCost, setTotalRepurchaseCost] = useState(0);
 
-  const fetchStockTotals = async (source) => {
-    try {
-      let query = supabase
-        .from(TABLES.STOCK_TRANSACTIONS)
-        .select(`total_cost, qty, per_unit, ${withItemMaster('item_name, inventory_type, department')}`)
-        .eq(COLUMNS.STOCK_TRANSACTIONS.SOURCE, source);
-
-      if (filterType) query = query.filter('item_master.inventory_type', 'eq', filterType);
-      if (filterDept) query = query.filter('item_master.department', 'eq', filterDept);
-      if (filterItem) query = query.filter('item_master.item_name', 'eq', filterItem);
-      if (startDate) query = query.gte('created_at', `${startDate}T00:00:00`);
-      if (endDate) query = query.lte('created_at', `${endDate}T23:59:59`);
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      const sum = (data || []).reduce((acc, row) => {
-        const c = row.total_cost ?? ((parseFloat(row.qty) || 0) * (parseFloat(row.per_unit) || 0));
-        const val = parseFloat(c || 0);
-        return acc + (isNaN(val) ? 0 : val);
-      }, 0);
-
-      if (source === ENUMS.STOCK_SOURCE.ADD_STOCK) {
-        setTotalPurchaseCost(sum);
-      } else {
-        setTotalRepurchaseCost(sum);
-      }
-    } catch (err) {
-      console.error("Failed to fetch stock total cost:", err);
-    }
-  };
-
-  const fetchStockPage = async (source, page = 1) => {
+  const fetchStockData = async () => {
     setIsTableLoading(true);
     try {
-      let query = supabase
-        .from(TABLES.STOCK_TRANSACTIONS)
-        .select(`*, ${withItemMaster('item_name, inventory_type, department')}`, { count: 'exact' })
-        .eq(COLUMNS.STOCK_TRANSACTIONS.SOURCE, source);
+      let all = [];
+      const pageSize = 1000;
+      for (let page = 0; ; page++) {
+        const { data, error } = await supabase
+          .from(TABLES.STOCK_TRANSACTIONS)
+          .select(`*, ${withItemMaster('item_name, inventory_type, department')}`)
+          .order(COLUMNS.STOCK_TRANSACTIONS.CREATED_AT, { ascending: false })
+          .range(page * pageSize, page * pageSize + pageSize - 1);
+        if (error) throw error;
+        all = all.concat(data || []);
+        if (!data || data.length < pageSize) break;
+      }
 
-      if (filterType) query = query.filter('item_master.inventory_type', 'eq', filterType);
-      if (filterDept) query = query.filter('item_master.department', 'eq', filterDept);
-      if (filterItem) query = query.filter('item_master.item_name', 'eq', filterItem);
-
-      if (startDate) query = query.gte('created_at', `${startDate}T00:00:00`);
-      if (endDate) query = query.lte('created_at', `${endDate}T23:59:59`);
-
-      query = query
-        .order(COLUMNS.STOCK_TRANSACTIONS.CREATED_AT, { ascending: false })
-        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
-
-      const { data, count, error } = await query;
-      if (error) throw error;
-
-      const formatted = (data || []).map(row => ({
+      const formatted = (all || []).map(row => ({
         id: row.id,
         serial_no: row.serial_no,
         created_at: row.created_at,
@@ -355,16 +312,12 @@ export default function Stock() {
         per_unit: row.per_unit,
         total_cost: row.total_cost,
         image_url: row.image_url,
-        remarks: row.remarks
+        remarks: row.remarks,
+        source: row.source
       }));
 
-      if (source === ENUMS.STOCK_SOURCE.ADD_STOCK) {
-        setStockRows(formatted);
-        setPurchaseCount(count || 0);
-      } else {
-        setRePurchaseRows(formatted);
-        setRepurchaseCount(count || 0);
-      }
+      setStockRows(formatted.filter(r => r.source === ENUMS.STOCK_SOURCE.ADD_STOCK));
+      setRePurchaseRows(formatted.filter(r => r.source === ENUMS.STOCK_SOURCE.RE_PURCHASE));
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -372,72 +325,115 @@ export default function Stock() {
     }
   };
 
-  const fetchStockData = () => {
-    const source = activeTab === 'purchase' ? ENUMS.STOCK_SOURCE.ADD_STOCK : ENUMS.STOCK_SOURCE.RE_PURCHASE;
-    const page = activeTab === 'purchase' ? purchasePage : repurchasePage;
-    fetchStockPage(source, page);
-    fetchStockTotals(source);
-  };
-
   useEffect(() => {
     fetchItems();
     fetchDropdowns();
+    fetchStockData();
   }, []);
 
   useEffect(() => {
     setPurchasePage(1);
     setRepurchasePage(1);
-  }, [filterType, filterDept, filterItem, startDate, endDate]);
-
-  useEffect(() => {
-    const source = activeTab === 'purchase' ? ENUMS.STOCK_SOURCE.ADD_STOCK : ENUMS.STOCK_SOURCE.RE_PURCHASE;
-    const page = activeTab === 'purchase' ? purchasePage : repurchasePage;
-    fetchStockPage(source, page);
-    fetchStockTotals(source);
-  }, [activeTab, purchasePage, repurchasePage, filterType, filterDept, filterItem, startDate, endDate]);
-
-  const typeOptions = useMemo(() => {
-    const filtered = items.filter(i => {
-      const matchesDept = !filterDept || i.department === filterDept;
-      const matchesItem = !filterItem || i.item_name === filterItem;
-      return matchesDept && matchesItem;
-    });
-    return [...new Set(filtered.map(i => i.inventory_type).filter(Boolean))].sort();
-  }, [items, filterDept, filterItem]);
-
-  const deptOptions = useMemo(() => {
-    const filtered = items.filter(i => {
-      const matchesType = !filterType || i.inventory_type === filterType;
-      const matchesItem = !filterItem || i.item_name === filterItem;
-      return matchesType && matchesItem;
-    });
-    return [...new Set(filtered.map(i => i.department).filter(Boolean))].sort();
-  }, [items, filterType, filterItem]);
-
-  const itemOptions = useMemo(() => {
-    const filtered = items.filter(i => {
-      const matchesType = !filterType || i.inventory_type === filterType;
-      const matchesDept = !filterDept || i.department === filterDept;
-      return matchesType && matchesDept;
-    });
-    return [...new Set(filtered.map(i => i.item_name).filter(Boolean))].sort();
-  }, [items, filterType, filterDept]);
+  }, [filterType, filterDept, filterItem, startDate, endDate, searchTerm, activeTab]);
 
   const historyToDisplay = useMemo(() => {
     return activeTab === 'purchase' ? stockRows : rePurchaseRows;
   }, [activeTab, stockRows, rePurchaseRows]);
 
-  const filteredStockRows = useMemo(() => {
-    if (!searchTerm.trim()) return historyToDisplay;
+  const typeOptions = useMemo(() => {
     const s = normalizeForMatch(searchTerm);
-    return historyToDisplay.filter(row =>
-      normalizeForMatch(row.item_name).includes(s) ||
-      normalizeForMatch(row.vendor_name).includes(s) ||
-      normalizeForMatch(row.serial_no).includes(s)
-    );
-  }, [historyToDisplay, searchTerm]);
+    const filtered = historyToDisplay.filter(i => {
+      const matchesSearch = !s || (
+        normalizeForMatch(i.item_name).includes(s) ||
+        normalizeForMatch(i.vendor_name).includes(s) ||
+        normalizeForMatch(i.serial_no).includes(s) ||
+        normalizeForMatch(i.inventory_type).includes(s) ||
+        normalizeForMatch(i.department).includes(s)
+      );
+      const matchesDept = !filterDept || i.department === filterDept;
+      const matchesItem = !filterItem || i.item_name === filterItem;
+      return matchesSearch && matchesDept && matchesItem;
+    });
+    return [...new Set(filtered.map(i => i.inventory_type).filter(Boolean))].sort();
+  }, [historyToDisplay, searchTerm, filterDept, filterItem]);
 
-  const totalStockCost = activeTab === 'purchase' ? totalPurchaseCost : totalRepurchaseCost;
+  const deptOptions = useMemo(() => {
+    const s = normalizeForMatch(searchTerm);
+    const filtered = historyToDisplay.filter(i => {
+      const matchesSearch = !s || (
+        normalizeForMatch(i.item_name).includes(s) ||
+        normalizeForMatch(i.vendor_name).includes(s) ||
+        normalizeForMatch(i.serial_no).includes(s) ||
+        normalizeForMatch(i.inventory_type).includes(s) ||
+        normalizeForMatch(i.department).includes(s)
+      );
+      const matchesType = !filterType || i.inventory_type === filterType;
+      const matchesItem = !filterItem || i.item_name === filterItem;
+      return matchesSearch && matchesType && matchesItem;
+    });
+    return [...new Set(filtered.map(i => i.department).filter(Boolean))].sort();
+  }, [historyToDisplay, searchTerm, filterType, filterItem]);
+
+  const itemOptions = useMemo(() => {
+    const s = normalizeForMatch(searchTerm);
+    const filtered = historyToDisplay.filter(i => {
+      const matchesSearch = !s || (
+        normalizeForMatch(i.item_name).includes(s) ||
+        normalizeForMatch(i.vendor_name).includes(s) ||
+        normalizeForMatch(i.serial_no).includes(s) ||
+        normalizeForMatch(i.inventory_type).includes(s) ||
+        normalizeForMatch(i.department).includes(s)
+      );
+      const matchesType = !filterType || i.inventory_type === filterType;
+      const matchesDept = !filterDept || i.department === filterDept;
+      return matchesSearch && matchesType && matchesDept;
+    });
+    return [...new Set(filtered.map(i => i.item_name).filter(Boolean))].sort();
+  }, [historyToDisplay, searchTerm, filterType, filterDept]);
+
+  const filteredStockRows = useMemo(() => {
+    const s = normalizeForMatch(searchTerm);
+    return historyToDisplay.filter(row => {
+      const matchesSearch = !s || (
+        normalizeForMatch(row.item_name).includes(s) ||
+        normalizeForMatch(row.vendor_name).includes(s) ||
+        normalizeForMatch(row.serial_no).includes(s) ||
+        normalizeForMatch(row.inventory_type).includes(s) ||
+        normalizeForMatch(row.department).includes(s)
+      );
+      const matchesType = !filterType || row.inventory_type === filterType;
+      const matchesDept = !filterDept || row.department === filterDept;
+      const matchesItem = !filterItem || row.item_name === filterItem;
+
+      let matchesDate = true;
+      if (startDate || endDate) {
+        const rowDate = parseRowDate(row.created_at);
+        if (rowDate && !isNaN(rowDate)) {
+          if (startDate && rowDate < new Date(startDate)) matchesDate = false;
+          if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            if (rowDate > end) matchesDate = false;
+          }
+        }
+      }
+      return matchesSearch && matchesType && matchesDept && matchesItem && matchesDate;
+    });
+  }, [historyToDisplay, searchTerm, filterType, filterDept, filterItem, startDate, endDate]);
+
+  const paginatedStockRows = useMemo(() => {
+    const currentPage = activeTab === 'purchase' ? purchasePage : repurchasePage;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredStockRows.slice(start, start + PAGE_SIZE);
+  }, [filteredStockRows, activeTab, purchasePage, repurchasePage]);
+
+  const totalStockCost = useMemo(() => {
+    return filteredStockRows.reduce((acc, row) => {
+      const c = row.total_cost ?? ((parseFloat(row.qty) || 0) * (parseFloat(row.per_unit) || 0));
+      const val = parseFloat(c || 0);
+      return acc + (isNaN(val) ? 0 : val);
+    }, 0);
+  }, [filteredStockRows]);
 
   const [isReportGenerating, setIsReportGenerating] = useState(false);
 
@@ -445,48 +441,7 @@ export default function Stock() {
     setIsReportGenerating(true);
 
     try {
-      const source = activeTab === 'purchase' ? ENUMS.STOCK_SOURCE.ADD_STOCK : ENUMS.STOCK_SOURCE.RE_PURCHASE;
-      let query = supabase
-        .from(TABLES.STOCK_TRANSACTIONS)
-        .select(`*, ${withItemMaster('item_name, inventory_type, department')}`)
-        .eq(COLUMNS.STOCK_TRANSACTIONS.SOURCE, source);
-
-      if (filterType) query = query.filter('item_master.inventory_type', 'eq', filterType);
-      if (filterDept) query = query.filter('item_master.department', 'eq', filterDept);
-      if (filterItem) query = query.filter('item_master.item_name', 'eq', filterItem);
-      if (startDate) query = query.gte('created_at', `${startDate}T00:00:00`);
-      if (endDate) query = query.lte('created_at', `${endDate}T23:59:59`);
-
-      query = query.order(COLUMNS.STOCK_TRANSACTIONS.CREATED_AT, { ascending: false });
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      let allExportRows = (data || []).map(row => ({
-        id: row.id,
-        serial_no: row.serial_no,
-        created_at: row.created_at,
-        item_id: row.item_id,
-        inventory_type: row.item_master?.inventory_type,
-        department: row.item_master?.department,
-        item_name: row.item_master?.item_name,
-        vendor_name: row.vendor_name,
-        qty: row.qty,
-        unit: row.unit,
-        per_unit: row.per_unit,
-        total_cost: row.total_cost,
-        image_url: row.image_url,
-        remarks: row.remarks
-      }));
-
-      if (searchTerm.trim()) {
-        const s = normalizeForMatch(searchTerm);
-        allExportRows = allExportRows.filter(row =>
-          normalizeForMatch(row.item_name).includes(s) ||
-          normalizeForMatch(row.vendor_name).includes(s) ||
-          normalizeForMatch(row.serial_no).includes(s)
-        );
-      }
+      const allExportRows = filteredStockRows;
 
       if (allExportRows.length === 0) {
         showToast('No records to export', 'info');
@@ -1103,7 +1058,7 @@ export default function Stock() {
                     </td>
                   </tr>
                 ) : (
-                  filteredStockRows.map((row) => {
+                  paginatedStockRows.map((row) => {
                     const isSelected = selectedIds.has(row.id);
                     const currentData = editDataMap[row.id] || row;
                     const previewCost = (parseFloat(currentData.qty || 0) * parseFloat(currentData.per_unit || 0));
@@ -1215,7 +1170,7 @@ export default function Stock() {
 
           <Pagination
             currentPage={activeTab === 'purchase' ? purchasePage : repurchasePage}
-            totalCount={activeTab === 'purchase' ? purchaseCount : repurchaseCount}
+            totalCount={filteredStockRows.length}
             pageSize={PAGE_SIZE}
             onPageChange={activeTab === 'purchase' ? setPurchasePage : setRepurchasePage}
             isLoading={isTableLoading}

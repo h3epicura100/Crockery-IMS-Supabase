@@ -746,33 +746,53 @@ const Inventory = () => {
 
   // Derive Options for Filters
   const issuedOptions = useMemo(() => {
-    const filteredByItem = issueHistory.filter(r => (!issuedFilterType || r.inventoryType === issuedFilterType) && (!issuedFilterParty || r.partyName === issuedFilterParty));
-    const filteredByType = issueHistory.filter(r => (!issuedFilterItem || r.itemName === issuedFilterItem) && (!issuedFilterParty || r.partyName === issuedFilterParty));
-    const filteredByParty = issueHistory.filter(r => (!issuedFilterItem || r.itemName === issuedFilterItem) && (!issuedFilterType || r.inventoryType === issuedFilterType));
+    const s = normalizeForMatch(searchTerm);
+    const filteredByItem = issueHistory.filter(r => {
+      const matchesSearch = !s || [r.serial, r.itemName, r.partyName, r.inventoryType, r.issuer, r.venueName].some(v => v && normalizeForMatch(v).includes(s));
+      return matchesSearch && (!issuedFilterType || r.inventoryType === issuedFilterType) && (!issuedFilterParty || normalizeForMatch(r.partyName) === normalizeForMatch(issuedFilterParty));
+    });
+    const filteredByType = issueHistory.filter(r => {
+      const matchesSearch = !s || [r.serial, r.itemName, r.partyName, r.inventoryType, r.issuer, r.venueName].some(v => v && normalizeForMatch(v).includes(s));
+      return matchesSearch && (!issuedFilterItem || r.itemName === issuedFilterItem) && (!issuedFilterParty || normalizeForMatch(r.partyName) === normalizeForMatch(issuedFilterParty));
+    });
+    const filteredByParty = issueHistory.filter(r => {
+      const matchesSearch = !s || [r.serial, r.itemName, r.partyName, r.inventoryType, r.issuer, r.venueName].some(v => v && normalizeForMatch(v).includes(s));
+      return matchesSearch && (!issuedFilterItem || r.itemName === issuedFilterItem) && (!issuedFilterType || r.inventoryType === issuedFilterType);
+    });
 
     return {
       items: [...new Set(filteredByItem.map(r => r.itemName).filter(Boolean))].sort(),
       types: [...new Set(filteredByType.map(r => r.inventoryType).filter(Boolean))].sort(),
       parties: [...new Set(filteredByParty.map(r => r.partyName).filter(Boolean))].sort(),
     };
-  }, [issueHistory, issuedFilterItem, issuedFilterType, issuedFilterParty]);
+  }, [issueHistory, searchTerm, issuedFilterItem, issuedFilterType, issuedFilterParty]);
 
   const returnOptions = useMemo(() => {
-    const filteredByItem = returnHistory.filter(r => (!returnFilterType || r.inventoryType === returnFilterType) && (!returnFilterParty || r.partyName === returnFilterParty));
-    const filteredByType = returnHistory.filter(r => (!returnFilterItem || r.itemName === returnFilterItem) && (!returnFilterParty || r.partyName === returnFilterParty));
-    const filteredByParty = returnHistory.filter(r => (!returnFilterItem || r.itemName === returnFilterItem) && (!returnFilterType || r.inventoryType === returnFilterType));
+    const s = normalizeForMatch(searchTerm);
+    const filteredByItem = returnHistory.filter(r => {
+      const matchesSearch = !s || [r.serial, r.itemName, r.partyName, r.inventoryType].some(v => v && normalizeForMatch(v).includes(s));
+      return matchesSearch && (!returnFilterType || r.inventoryType === returnFilterType) && (!returnFilterParty || normalizeForMatch(r.partyName) === normalizeForMatch(returnFilterParty));
+    });
+    const filteredByType = returnHistory.filter(r => {
+      const matchesSearch = !s || [r.serial, r.itemName, r.partyName, r.inventoryType].some(v => v && normalizeForMatch(v).includes(s));
+      return matchesSearch && (!returnFilterItem || r.itemName === returnFilterItem) && (!returnFilterParty || normalizeForMatch(r.partyName) === normalizeForMatch(returnFilterParty));
+    });
+    const filteredByParty = returnHistory.filter(r => {
+      const matchesSearch = !s || [r.serial, r.itemName, r.partyName, r.inventoryType].some(v => v && normalizeForMatch(v).includes(s));
+      return matchesSearch && (!returnFilterItem || r.itemName === returnFilterItem) && (!returnFilterType || r.inventoryType === returnFilterType);
+    });
 
     return {
       items: [...new Set(filteredByItem.map(r => r.itemName).filter(Boolean))].sort(),
       types: [...new Set(filteredByType.map(r => r.inventoryType).filter(Boolean))].sort(),
       parties: [...new Set(filteredByParty.map(r => r.partyName).filter(Boolean))].sort(),
     };
-  }, [returnHistory, returnFilterItem, returnFilterType, returnFilterParty]);
+  }, [returnHistory, searchTerm, returnFilterItem, returnFilterType, returnFilterParty]);
 
   const filteredIssuedHistory = useMemo(() => {
     const s = normalizeForMatch(searchTerm);
     return issueHistory.filter(row => {
-      const matchesSearch = !s || [row.itemName, row.partyName, row.inventoryType, row.issuer].some(v => v && normalizeForMatch(v).includes(s));
+      const matchesSearch = !s || [row.serial, row.itemName, row.partyName, row.inventoryType, row.issuer, row.venueName].some(v => v && normalizeForMatch(v).includes(s));
       const matchesItem = !issuedFilterItem || row.itemName === issuedFilterItem;
       const matchesType = !issuedFilterType || row.inventoryType === issuedFilterType;
       const matchesParty = !issuedFilterParty || normalizeForMatch(row.partyName) === normalizeForMatch(issuedFilterParty);
@@ -813,7 +833,7 @@ const Inventory = () => {
   const filteredReturnHistory = useMemo(() => {
     const s = normalizeForMatch(searchTerm);
     return returnHistory.filter(row => {
-      const matchesSearch = !s || [row.itemName, row.partyName, row.inventoryType].some(v => v && normalizeForMatch(v).includes(s));
+      const matchesSearch = !s || [row.serial, row.itemName, row.partyName, row.inventoryType].some(v => v && normalizeForMatch(v).includes(s));
       const matchesItem = !returnFilterItem || row.itemName === returnFilterItem;
       const matchesType = !returnFilterType || row.inventoryType === returnFilterType;
       const matchesParty = !returnFilterParty || normalizeForMatch(row.partyName) === normalizeForMatch(returnFilterParty);
@@ -1240,43 +1260,13 @@ const Inventory = () => {
 
   const handleGenerateReport = () => {
     const isIssued = activeTab === 'issued';
-    const sourceData = isIssued ? issueHistory : returnHistory;
+    const sourceData = isIssued ? filteredIssuedHistory : filteredReturnHistory;
 
     const filteredReportData = sourceData.filter(row => {
-      if (isIssued) {
-        if (shouldGroup && selectedPartyCard) return row.partyName === selectedPartyCard;
-        const matchesItem = !issuedFilterItem || row.itemName === issuedFilterItem;
-        const matchesType = !issuedFilterType || row.inventoryType === issuedFilterType;
-        const matchesParty = !issuedFilterParty || row.partyName === issuedFilterParty;
-        let matchesDate = true;
-        if (issuedStartDate || issuedEndDate) {
-          const rowDate = parseRowDate(row.eventDate);
-          if (!rowDate || isNaN(rowDate)) return true;
-          if (issuedStartDate && rowDate < new Date(issuedStartDate)) matchesDate = false;
-          if (issuedEndDate) {
-            const end = new Date(issuedEndDate);
-            end.setHours(23, 59, 59, 999);
-            if (rowDate > end) matchesDate = false;
-          }
-        }
-        return matchesItem && matchesType && matchesParty && matchesDate;
-      } else {
-        const matchesItem = !returnFilterItem || row.itemName === returnFilterItem;
-        const matchesType = !returnFilterType || row.inventoryType === returnFilterType;
-        const matchesParty = !returnFilterParty || row.partyName === returnFilterParty;
-        let matchesDate = true;
-        if (returnStartDate || returnEndDate) {
-          const rowDate = parseRowDate(row.eventDate);
-          if (!rowDate || isNaN(rowDate)) return true;
-          if (returnStartDate && rowDate < new Date(returnStartDate)) matchesDate = false;
-          if (returnEndDate) {
-            const end = new Date(returnEndDate);
-            end.setHours(23, 59, 59, 999);
-            if (rowDate > end) matchesDate = false;
-          }
-        }
-        return matchesItem && matchesType && matchesParty && matchesDate;
+      if (isIssued && shouldGroup && selectedPartyCard) {
+        return normalizeForMatch(row.partyName) === normalizeForMatch(selectedPartyCard);
       }
+      return true;
     });
 
     if (filteredReportData.length === 0) {
