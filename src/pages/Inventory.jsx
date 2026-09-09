@@ -2148,7 +2148,7 @@ const Inventory = () => {
                 {isReturnModalOpen && isEditing && (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Party-Month</label>
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Party Name</label>
                       <div className="w-full h-11 px-4 rounded-lg border border-slate-200 bg-slate-50 flex items-center text-sm font-medium text-slate-500">{returnForm.partyName || '-'}</div>
                     </div>
                     <div className="space-y-1">
@@ -2165,7 +2165,7 @@ const Inventory = () => {
                 {isReturnModalOpen && !isEditing && (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                     <div className="space-y-1 relative" ref={returnPartyDropdownRef}>
-                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Party-Month *</label>
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Party Name *</label>
                       <div className="relative">
                         <input
                           type="text"
