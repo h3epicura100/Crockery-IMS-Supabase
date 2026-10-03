@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
 import Pagination from "../components/Pagination";
+import SearchableSelect from "../components/SearchableSelect";
 import { formatDate, parseRowDate, formatIndianAmount, normalizeForMatch } from "../utils/helpers";
 import { supabase } from "../utils/supabaseClient";
 import { uploadImage } from "../utils/supabaseStorage";
@@ -1199,95 +1200,82 @@ export default function Stock() {
               <form onSubmit={handlePurchaseSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
                 <div className="px-4 sm:px-7 py-5 space-y-4 sm:space-y-5 overflow-y-auto custom-scrollbar flex-1">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Inventory Type</label>
-                    <div className="relative">
-                      <select
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Inventory Type</label>
+                      <SearchableSelect
                         value={purchaseForm.inventoryType}
-                        onChange={(e) => {
-                          setPurchaseForm({ ...purchaseForm, inventoryType: e.target.value, itemsName: '', itemId: '' });
-                          if (e.target.value) setShowPurchaseItemDropdown(true);
+                        onChange={(val) => {
+                          setPurchaseForm(prev => ({
+                            ...prev,
+                            inventoryType: val,
+                            itemsName: '',
+                            itemId: '',
+                            department: '',
+                            unit: '',
+                            perUnit: ''
+                          }));
+                          setImagePreview(null);
                         }}
-                        required
-                        className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 appearance-none bg-white font-sans"
-                      >
-                        <option value="">Select type...</option>
-                        {dropdownOptions.inventoryTypeOptions.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                        options={dropdownOptions.inventoryTypeOptions || []}
+                        placeholder="Select type..."
+                        searchPlaceholder="Search type..."
+                        size="form"
+                      />
                     </div>
-                  </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Item Name</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={purchaseForm.itemsName}
-                      onChange={(e) => {
-                        setPurchaseForm(prev => ({ ...prev, itemsName: e.target.value }));
-                        setShowPurchaseItemDropdown(true);
-                      }}
-                      onFocus={() => setShowPurchaseItemDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowPurchaseItemDropdown(false), 200)}
-                      required
-                      placeholder={purchaseForm.inventoryType ? "Search items..." : "Select type first..."}
-                      disabled={!purchaseForm.inventoryType}
-                      className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 disabled:bg-slate-50 disabled:text-slate-400 font-sans"
-                    />
-                    {showPurchaseItemDropdown && (
-                      <div className="absolute z-50 w-full mt-1.5 bg-white border border-slate-200 rounded-lg shadow-xl max-h-56 overflow-y-auto ring-1 ring-slate-900/5">
-                        {items
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Item Name</label>
+                      <SearchableSelect
+                        value={purchaseForm.itemId}
+                        onChange={(val) => {
+                          const item = items.find(i => String(i.id) === String(val));
+                          if (item) {
+                            setPurchaseForm(prev => ({
+                              ...prev,
+                              itemId: item.id,
+                              department: item.department,
+                              itemsName: item.item_name,
+                              unit: item.unit,
+                              perUnit: item.damage_price != null ? String(item.damage_price) : '',
+                              vendorName: '',
+                              imageUrl: item.image_url || '',
+                              openingBalance: '',
+                              remarks: ''
+                            }));
+                            setImagePreview(item.image_url ? getDisplayableImageUrl(item.image_url) : null);
+                          } else {
+                            setPurchaseForm(prev => ({
+                              ...prev,
+                              itemId: '',
+                              itemsName: '',
+                              department: '',
+                              unit: '',
+                              perUnit: '',
+                              imageUrl: ''
+                            }));
+                            setImagePreview(null);
+                          }
+                        }}
+                        options={items
                           .filter(item => {
                             const rowType = String(item.inventory_type || '').trim().toLowerCase();
                             const selectedType = String(purchaseForm.inventoryType || '').trim().toLowerCase();
-                            const rowName = String(item.item_name || '').toLowerCase();
-                            const searchName = (purchaseForm.itemsName || '').toLowerCase();
-                            return rowType === selectedType && rowName.includes(searchName);
+                            return rowType === selectedType;
                           })
-                          .map(item => (
-                            <button
-                              key={item.id}
-                              type="button"
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                setPurchaseForm({
-                                  ...purchaseForm,
-                                  itemId: item.id,
-                                  department: item.department,
-                                  itemsName: item.item_name,
-                                  unit: item.unit,
-                                  perUnit: item.damage_price != null ? String(item.damage_price) : '',
-                                  vendorName: '',
-                                  imageUrl: item.image_url || '',
-                                  openingBalance: '',
-                                  remarks: ''
-                                });
-                                setImagePreview(item.image_url ? getDisplayableImageUrl(item.image_url) : null);
-                                setShowPurchaseItemDropdown(false);
-                              }}
-                              className="w-full text-left px-5 py-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 transition-colors"
-                            >
-                              <div className="flex justify-between items-center mb-0.5">
-                                <span className="text-sm font-semibold text-slate-700">{item.item_name}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
-                                <span>{item.department}</span>
-                                <span className="h-1 w-1 rounded-full bg-slate-200"></span>
-                                <span>{item.unit}</span>
-                              </div>
-                            </button>
-                          ))}
-                        {items.filter(item => String(item.inventory_type || '').trim().toLowerCase() === String(purchaseForm.inventoryType || '').trim().toLowerCase()).length === 0 && (
-                          <div className="px-5 py-4 text-xs text-slate-400 text-center italic bg-slate-50">No items found for this type</div>
-                        )}
-                      </div>
-                    )}
+                          .map(item => ({
+                            id: item.id,
+                            value: item.id,
+                            label: item.item_name
+                          }))
+                        }
+                        disabled={!purchaseForm.inventoryType}
+                        placeholder={purchaseForm.inventoryType ? "Select item..." : "Select type first..."}
+                        searchPlaceholder="Search item..."
+                        emptyMessage="No items found for this type"
+                        size="form"
+                      />
+                    </div>
                   </div>
-                </div>
-              </div>
 
                 <div className="space-y-4 sm:space-y-5 animate-in slide-in-from-top-4 duration-500">
                   {purchaseForm.itemId && (
@@ -1425,69 +1413,69 @@ export default function Stock() {
               <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
                 <div className="px-4 sm:px-7 py-5 space-y-4 max-h-[72vh] overflow-y-auto custom-scrollbar font-sans flex-1">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Inventory Type</label>
-                    <select
-                      value={form.inventoryType}
-                      onChange={(e) => setForm(prev => ({ ...prev, inventoryType: e.target.value, department: '', itemsName: '', itemId: '' }))}
-                      required
-                      className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 appearance-none bg-white"
-                    >
-                      <option value="">Select type...</option>
-                      {dropdownOptions.inventoryTypeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Inventory Type</label>
+                      <SearchableSelect
+                        value={form.inventoryType}
+                        onChange={(val) => setForm(prev => ({ ...prev, inventoryType: val, department: '', itemsName: '', itemId: '' }))}
+                        options={dropdownOptions.inventoryTypeOptions || []}
+                        placeholder="Select type..."
+                        searchPlaceholder="Search type..."
+                        size="form"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Department</label>
+                      <SearchableSelect
+                        value={form.department}
+                        onChange={(val) => setForm(prev => ({ ...prev, department: val, itemsName: '', itemId: '' }))}
+                        options={addStockDepartmentOptions || []}
+                        placeholder="Select department..."
+                        searchPlaceholder="Search department..."
+                        size="form"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Department</label>
-                    <select
-                      value={form.department}
-                      onChange={(e) => setForm(prev => ({ ...prev, department: e.target.value, itemsName: '', itemId: '' }))}
-                      required
-                      className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 appearance-none bg-white"
-                    >
-                      <option value="">Select department...</option>
-                      {addStockDepartmentOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Item Name</label>
+                    <SearchableSelect
+                      value={form.itemId}
+                      onChange={(val) => {
+                        const item = addStockItemOptions.find(i => String(i.id) === String(val));
+                        if (item) handleSelectAddStockItem(item);
+                      }}
+                      options={addStockItemOptions.map(item => ({
+                        id: item.id,
+                        value: item.id,
+                        label: item.item_name
+                      }))}
+                      disabled={!form.inventoryType || !form.department}
+                      placeholder={form.inventoryType && form.department ? "Select item..." : "Select type & department first"}
+                      searchPlaceholder="Search item..."
+                      emptyMessage="No items found — create it in Master > Items first."
+                      size="form"
+                    />
+                    {form.inventoryType && form.department && addStockItemOptions.length === 0 && (
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mt-1.5 px-1">No items found — create it in Master &gt; Items first.</p>
+                    )}
                   </div>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Item Name</label>
-                  <select
-                    value={form.itemId}
-                    onChange={(e) => {
-                      const item = addStockItemOptions.find(i => i.id === e.target.value);
-                      if (item) handleSelectAddStockItem(item);
-                    }}
-                    required
-                    disabled={!form.inventoryType || !form.department}
-                    className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 appearance-none bg-white disabled:bg-slate-50 disabled:text-slate-400"
-                  >
-                    <option value="">{form.inventoryType && form.department ? "Select item..." : "Select type & department first"}</option>
-                    {addStockItemOptions.map(item => <option key={item.id} value={item.id}>{item.item_name}</option>)}
-                  </select>
-                  {form.inventoryType && form.department && addStockItemOptions.length === 0 && (
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mt-1.5 px-1">No items found — create it in Master &gt; Items first.</p>
-                  )}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Vendor Name</label>
-                    <input type="text" name="vendorName" value={form.vendorName} onChange={handleChange} required placeholder="Enter vendor name" className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 font-sans" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Vendor Name</label>
+                      <input type="text" name="vendorName" value={form.vendorName} onChange={handleChange} required placeholder="Enter vendor name" className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 font-sans" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Unit</label>
+                      <SearchableSelect
+                        value={form.unit}
+                        onChange={(val) => setForm(prev => ({ ...prev, unit: val }))}
+                        options={dropdownOptions.unitOptions || []}
+                        placeholder="Select unit..."
+                        searchPlaceholder="Search unit..."
+                        size="form"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Unit</label>
-                    <select
-                      name="unit"
-                      value={form.unit}
-                      onChange={handleChange}
-                      required
-                      className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 appearance-none bg-white"
-                    >
-                      <option value="">Select unit...</option>
-                      {dropdownOptions.unitOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  </div>
-                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Opening Balance</label>

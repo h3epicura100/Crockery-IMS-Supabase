@@ -11,7 +11,8 @@ import {
   ListTree,
   Loader2,
   AlertTriangle,
-  UploadCloud
+  UploadCloud,
+  Check
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
 import Pagination from "../components/Pagination";
@@ -59,6 +60,15 @@ export default function Master() {
   const [newUnit, setNewUnit] = useState("");
   const [dropdownSaving, setDropdownSaving] = useState(false);
   const [deletingDropdownId, setDeletingDropdownId] = useState(null);
+  const [editingOptionId, setEditingOptionId] = useState(null);
+  const [editingOptionValue, setEditingOptionValue] = useState("");
+  const [editingSaving, setEditingSaving] = useState(false);
+  const [dropdownSearch, setDropdownSearch] = useState({});
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState({
+    isOpen: false,
+    opt: null,
+    categoryTitle: ""
+  });
 
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const showToast = (message, type = "success") => {
@@ -320,16 +330,89 @@ export default function Master() {
     fetchDropdowns();
   };
 
-  const handleDeleteDropdown = async (opt) => {
-    if (!window.confirm(`Remove "${opt.value}" from the list?`)) return;
+  const handleStartEdit = (opt) => {
+    setEditingOptionId(opt.id);
+    setEditingOptionValue(opt.value);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingOptionId(null);
+    setEditingOptionValue("");
+  };
+
+  const handleSaveEdit = async (opt, category) => {
+    const newVal = editingOptionValue.trim();
+    const oldVal = opt.value;
+    if (!newVal) {
+      showToast("Value cannot be empty.", "error");
+      return;
+    }
+    if (newVal === oldVal) {
+      setEditingOptionId(null);
+      return;
+    }
+
+    setEditingSaving(true);
+    // 1. Update dropdown_options table
+    const { error } = await supabase
+      .from(TABLES.DROPDOWN_OPTIONS)
+      .update({ value: newVal })
+      .eq("id", opt.id);
+
+    if (error) {
+      setEditingSaving(false);
+      if (error.code === "23505") showToast(`"${newVal}" already exists in this list.`, "error");
+      else showToast(error.message, "error");
+      return;
+    }
+
+    // 2. Cascade rename to existing records so data stays consistent
+    try {
+      if (category === DROPDOWN_CATEGORY.INVENTORY_TYPE) {
+        await supabase.from(TABLES.ITEM_MASTER).update({ inventory_type: newVal }).eq("inventory_type", oldVal);
+      } else if (category === DROPDOWN_CATEGORY.DEPARTMENT) {
+        await supabase.from(TABLES.ITEM_MASTER).update({ department: newVal }).eq("department", oldVal);
+      } else if (category === DROPDOWN_CATEGORY.UNIT) {
+        await supabase.from(TABLES.ITEM_MASTER).update({ unit: newVal }).eq("unit", oldVal);
+        await supabase.from(TABLES.STOCK_TRANSACTIONS).update({ unit: newVal }).eq("unit", oldVal);
+      } else if (category === DROPDOWN_CATEGORY.ISSUER) {
+        await supabase.from(TABLES.ISSUES).update({ issuer: newVal }).eq("issuer", oldVal);
+      } else if (category === DROPDOWN_CATEGORY.EVENT_TYPE) {
+        await supabase.from(TABLES.ISSUES).update({ event_type: newVal }).eq("event_type", oldVal);
+      }
+    } catch (cascadeErr) {
+      console.warn("Cascade update notice:", cascadeErr);
+    }
+
+    setEditingSaving(false);
+    setEditingOptionId(null);
+    setEditingOptionValue("");
+    showToast(`Updated to "${newVal}"`);
+    fetchDropdowns();
+    fetchItems();
+  };
+
+  const requestDeleteDropdown = (opt, categoryTitle = "entry") => {
+    setDeleteConfirmModal({
+      isOpen: true,
+      opt,
+      categoryTitle
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmModal.opt) return;
+    const opt = deleteConfirmModal.opt;
+    const label = opt.value;
     setDeletingDropdownId(opt.id);
     const { error } = await supabase.from(TABLES.DROPDOWN_OPTIONS).delete().eq("id", opt.id);
     setDeletingDropdownId(null);
+    setDeleteConfirmModal({ isOpen: false, opt: null, categoryTitle: "" });
     if (error) {
       showToast(error.message, "error");
       return;
     }
-    showToast("Removed");
+    showToast(`Removed "${label}"`);
     fetchDropdowns();
   };
 
@@ -525,48 +608,139 @@ export default function Master() {
               { title: "Units", category: DROPDOWN_CATEGORY.UNIT, list: units, value: newUnit, setValue: setNewUnit },
               { title: "Issuers", category: DROPDOWN_CATEGORY.ISSUER, list: issuers, value: newIssuer, setValue: setNewIssuer },
               { title: "Event Types", category: DROPDOWN_CATEGORY.EVENT_TYPE, list: eventTypes, value: newEventType, setValue: setNewEventType }
-            ].map(col => (
-              <div key={col.category} className="bg-white rounded-xl rounded-tl-none border border-slate-100 shadow-sm p-4 sm:p-5">
-                <h3 className="text-sm font-bold text-slate-800 mb-3">{col.title}</h3>
-                <div className="flex gap-2 mb-4">
-                  <input
-                    type="text"
-                    placeholder={`Add new ${col.title.toLowerCase().slice(0, -1)}...`}
-                    value={col.value}
-                    onChange={(e) => col.setValue(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddDropdown(col.category, col.value, col.setValue)}
-                    className="h-9 flex-1 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 font-medium focus:border-violet-300 outline-none"
-                  />
-                  <button
-                    onClick={() => handleAddDropdown(col.category, col.value, col.setValue)}
-                    disabled={dropdownSaving}
-                    className="h-9 px-3 rounded-xl bg-violet-600 text-white text-xs font-bold hover:bg-violet-700 transition-all flex items-center justify-center shrink-0"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
-                  {dropdownsLoading ? (
-                    <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest text-center py-4">Loading…</p>
-                  ) : col.list.length === 0 ? (
-                    <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest text-center py-4">No entries</p>
-                  ) : (
-                    col.list.map(opt => (
-                      <div key={opt.id} className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100/70 transition-colors">
-                        <span className="text-xs font-semibold text-slate-700">{opt.value}</span>
+            ].map(col => {
+              const query = (dropdownSearch[col.category] || "").toLowerCase().trim();
+              const displayList = query ? col.list.filter(opt => opt.value.toLowerCase().includes(query)) : col.list;
+
+              return (
+                <div key={col.category} className="bg-white rounded-xl rounded-tl-none border border-slate-100 shadow-sm p-4 sm:p-5 flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="text-sm font-bold text-slate-800">{col.title}</h3>
+                      <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{col.list.length}</span>
+                    </div>
+                  </div>
+
+                  {/* Add Input */}
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      placeholder={`Add new ${col.title.toLowerCase().slice(0, -1)}...`}
+                      value={col.value}
+                      onChange={(e) => col.setValue(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleAddDropdown(col.category, col.value, col.setValue)}
+                      className="h-9 flex-1 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 font-medium focus:border-violet-300 outline-none"
+                    />
+                    <button
+                      onClick={() => handleAddDropdown(col.category, col.value, col.setValue)}
+                      disabled={dropdownSaving}
+                      title="Add (Enter)"
+                      className="h-9 px-3 rounded-xl bg-violet-600 text-white text-xs font-bold hover:bg-violet-700 transition-all flex items-center justify-center shrink-0 disabled:opacity-50"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Filter box for long lists */}
+                  {col.list.length > 5 && (
+                    <div className="relative mb-2.5">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder={`Filter ${col.title.toLowerCase()}...`}
+                        value={dropdownSearch[col.category] || ""}
+                        onChange={(e) => setDropdownSearch(p => ({ ...p, [col.category]: e.target.value }))}
+                        className="h-8 w-full pl-8 pr-7 rounded-lg bg-slate-50/70 border border-slate-200 text-[11px] font-medium text-slate-600 focus:bg-white focus:border-violet-300 outline-none transition-all"
+                      />
+                      {dropdownSearch[col.category] && (
                         <button
-                          onClick={() => handleDeleteDropdown(opt.id, opt.value)}
-                          disabled={deletingDropdownId === opt.id}
-                          className="p-1 rounded-lg text-slate-300 hover:text-red-500 hover:bg-white transition-all disabled:opacity-40"
+                          type="button"
+                          onClick={() => setDropdownSearch(p => ({ ...p, [col.category]: "" }))}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                         >
-                          {deletingDropdownId === opt.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                          <X className="h-3 w-3" />
                         </button>
-                      </div>
-                    ))
+                      )}
+                    </div>
                   )}
+
+                  {/* Items list */}
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1 custom-scrollbar flex-1">
+                    {dropdownsLoading ? (
+                      <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest text-center py-4">Loading…</p>
+                    ) : displayList.length === 0 ? (
+                      <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest text-center py-4">
+                        {query ? "No matches found" : "No entries"}
+                      </p>
+                    ) : (
+                      displayList.map(opt => {
+                        const isEditing = editingOptionId === opt.id;
+                        return (
+                          <div key={opt.id} className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100/70 transition-colors gap-2">
+                            {isEditing ? (
+                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                <input
+                                  type="text"
+                                  value={editingOptionValue}
+                                  onChange={(e) => setEditingOptionValue(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveEdit(opt, col.category);
+                                    if (e.key === "Escape") handleCancelEdit();
+                                  }}
+                                  autoFocus
+                                  className="h-8 flex-1 px-2.5 rounded-lg bg-white border border-violet-400 focus:ring-2 focus:ring-violet-500/20 text-xs font-semibold text-slate-800 outline-none"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveEdit(opt, col.category)}
+                                  disabled={editingSaving}
+                                  title="Save (Enter)"
+                                  className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                                >
+                                  {editingSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleCancelEdit}
+                                  disabled={editingSaving}
+                                  title="Cancel (Esc)"
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors disabled:opacity-50"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <span className="text-xs font-semibold text-slate-700 truncate">{opt.value}</span>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartEdit(opt)}
+                                    title="Edit option"
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-violet-600 hover:bg-white transition-all"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => requestDeleteDropdown(opt, col.title)}
+                                    disabled={deletingDropdownId === opt.id}
+                                    title="Delete option"
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-white transition-all disabled:opacity-40"
+                                  >
+                                    {deletingDropdownId === opt.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -685,6 +859,59 @@ export default function Master() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modern In-App Confirmation Dialog for Deleting Dropdown Options */}
+        {deleteConfirmModal.isOpen && deleteConfirmModal.opt && (
+          <div
+            className="fixed inset-0 z-[250] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+            onClick={() => !deletingDropdownId && setDeleteConfirmModal({ isOpen: false, opt: null, categoryTitle: "" })}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 sm:p-6 animate-in zoom-in-95 duration-200 border border-slate-100 flex flex-col font-sans"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-3.5">
+                <div className="h-11 w-11 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center shrink-0 border border-red-100">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Delete Option</h3>
+                  <p className="text-xs text-slate-400 font-medium">Remove from dropdown list</p>
+                </div>
+              </div>
+
+              <div className="my-2 p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-600 space-y-2">
+                <p className="text-slate-700 font-medium">
+                  Are you sure you want to remove <span className="font-bold text-red-600 bg-red-50/80 px-1.5 py-0.5 rounded border border-red-100">"{deleteConfirmModal.opt.value}"</span> from {deleteConfirmModal.categoryTitle}?
+                </p>
+                <div className="p-2.5 rounded-lg bg-emerald-50/80 border border-emerald-100/80 text-[11px] text-emerald-800 flex items-start gap-1.5">
+                  <span className="font-bold text-emerald-600">✓</span>
+                  <span>Existing historical records with this {deleteConfirmModal.categoryTitle.toLowerCase().replace(/s$/, '')} will <strong>NOT</strong> be deleted or affected.</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmModal({ isOpen: false, opt: null, categoryTitle: "" })}
+                  disabled={deletingDropdownId !== null}
+                  className="h-9 px-4 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={deletingDropdownId !== null}
+                  className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-all flex items-center gap-1.5 shadow-sm shadow-red-200 disabled:opacity-50"
+                >
+                  {deletingDropdownId !== null && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  <span>{deletingDropdownId !== null ? "Deleting..." : "Delete Option"}</span>
+                </button>
+              </div>
             </div>
           </div>
         )}

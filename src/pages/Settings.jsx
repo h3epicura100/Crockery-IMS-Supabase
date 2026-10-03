@@ -13,6 +13,7 @@ import {
   ShieldAlert
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
+import SearchableSelect from "../components/SearchableSelect";
 import { supabase } from "../utils/supabaseClient";
 import { TABLES } from "../utils/dbSchema";
 
@@ -230,11 +231,19 @@ export default function Settings() {
                   </div>
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Role</label>
-                    <select value={form.role} onChange={(e) => setForm(p => ({ ...p, role: e.target.value }))}
-                      className="mt-1 h-10 w-full px-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 outline-none text-sm">
-                      <option value="user">User</option>
-                      <option value="admin">Admin</option>
-                    </select>
+                    <div className="mt-1">
+                      <SearchableSelect
+                        value={form.role}
+                        onChange={(val) => setForm(p => ({ ...p, role: val }))}
+                        options={[
+                          { value: "user", label: "User" },
+                          { value: "admin", label: "Admin" }
+                        ]}
+                        searchable={false}
+                        allowClear={false}
+                        size="md"
+                      />
+                    </div>
                   </div>
                 </div>
 

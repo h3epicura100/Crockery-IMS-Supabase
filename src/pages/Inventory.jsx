@@ -22,6 +22,7 @@ import {
 import AdminLayout from '../components/layout/AdminLayout';
 import PartyCard from '../components/layout/PartyCard';
 import Pagination from '../components/Pagination';
+import SearchableSelect from '../components/SearchableSelect';
 import { formatDate, toInputDate, parseRowDate, parseNumber, formatIndianAmount, cleanText, normalizeForMatch } from '../utils/helpers';
 import { supabase } from '../utils/supabaseClient';
 import { uploadImage } from '../utils/supabaseStorage';
@@ -2043,10 +2044,9 @@ const Inventory = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-violet-600 uppercase tracking-wide">For *</label>
-                      <select
+                      <SearchableSelect
                         value={issueForm.forType}
-                        onChange={(e) => {
-                          const val = e.target.value;
+                        onChange={(val) => {
                           const item = items.find(i => i.item_name === issueForm.itemsName && i.inventory_type === issueForm.inventoryType);
                           setIssueForm(p => ({
                             ...p,
@@ -2055,92 +2055,77 @@ const Inventory = () => {
                             unit: val === 'H3' ? '0' : (item ? String(item.damage_price ?? 0) : p.unit)
                           }));
                         }}
-                        required
-                        className="w-full h-11 px-4 rounded-lg border-2 border-violet-100 focus:border-violet-500 outline-none text-sm font-bold text-violet-700 bg-violet-50/20 transition-all"
-                      >
-                        <option value="Rent">Rent</option>
-                        <option value="H3">H3</option>
-                      </select>
+                        options={["Rent", "H3"]}
+                        searchable={false}
+                        allowClear={false}
+                        size="form"
+                        buttonClassName="bg-violet-50/40 border-2 border-violet-200 text-violet-700 font-bold"
+                      />
                     </div>
 
-                    <div className="space-y-1 relative" ref={issuerDropdownRef}>
+                    <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Issuer *</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={issueForm.issuer}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setIssueForm(p => ({ ...p, issuer: val }));
-                            setShowIssuerDropdown(true);
-                          }}
-                          onFocus={() => setShowIssuerDropdown(true)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              const matches = (dropdownOptions.issuerOptions || []).filter(opt => !issueForm.issuer || opt.toLowerCase().includes(issueForm.issuer.toLowerCase()));
-                              if (showIssuerDropdown && matches.length > 0) {
-                                e.preventDefault();
-                                setIssueForm(p => ({ ...p, issuer: matches[0] }));
-                                setShowIssuerDropdown(false);
-                              }
-                            }
-                          }}
-                          required
-                          placeholder="Type or select..."
-                          className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white"
-                        />
-                        <button type="button" onClick={() => setShowIssuerDropdown(!showIssuerDropdown)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-violet-600 transition-colors">
-                          <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showIssuerDropdown ? 'rotate-180' : ''}`} />
-                        </button>
-                      </div>
-
-                      {showIssuerDropdown && (
-                        <div className="absolute z-[160] w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
-                          {(dropdownOptions.issuerOptions || [])
-                            .filter(opt => !issueForm.issuer || opt.toLowerCase().includes(issueForm.issuer.toLowerCase()))
-                            .map((opt, idx) => (
-                              <button key={idx} type="button" onClick={() => { setIssueForm(p => ({ ...p, issuer: opt })); setShowIssuerDropdown(false); }} className="w-full px-4 py-2.5 text-left text-sm font-bold text-slate-600 hover:bg-violet-50 hover:text-violet-600 transition-colors border-b border-slate-50 last:border-0">
-                                {opt}
-                              </button>
-                            ))}
-                          {dropdownOptions.issuerOptions.filter(opt => !issueForm.issuer || opt.toLowerCase().includes(issueForm.issuer.toLowerCase())).length === 0 && (
-                            <div className="px-4 py-3 text-xs font-bold text-slate-400 italic text-center">No matching issuers</div>
-                          )}
-                        </div>
-                      )}
+                      <SearchableSelect
+                        value={issueForm.issuer}
+                        onChange={(val) => setIssueForm(p => ({ ...p, issuer: val }))}
+                        options={dropdownOptions.issuerOptions || []}
+                        placeholder="Type or select..."
+                        searchPlaceholder="Search or type issuer..."
+                        creatable={true}
+                        size="form"
+                      />
                     </div>
 
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Inventory Type *</label>
-                      <select value={issueForm.inventoryType} onChange={(e) => setIssueForm(p => ({ ...p, inventoryType: e.target.value, itemsName: '', itemId: '' }))} required className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white">
-                        <option value="">Select type</option>
-                        {returnInvTypeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
+                      <SearchableSelect
+                        value={issueForm.inventoryType}
+                        onChange={(val) => setIssueForm(p => ({ ...p, inventoryType: val, itemsName: '', itemId: '' }))}
+                        options={returnInvTypeOptions}
+                        placeholder="Select type"
+                        searchPlaceholder="Search type..."
+                        size="form"
+                      />
                     </div>
+
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Item Name *</label>
-                      <select value={issueForm.itemsName} onChange={(e) => {
-                        const val = e.target.value;
-                        const item = items.find(i => i.item_name === val && i.inventory_type === issueForm.inventoryType);
-                        if (item) {
-                          const stock = itemStockMap[item.id];
-                          setIssueForm(prev => ({
-                            ...prev,
-                            itemsName: val,
-                            itemId: item.id,
-                            department: item.department,
-                            openingBalance: stock?.current_stock ?? 0,
-                            perUnit: prev.forType === 'H3' ? '0' : String(item.rental_price ?? 0),
-                            unit: prev.forType === 'H3' ? '0' : String(item.damage_price ?? 0),
-                            imageUrl: item.image_url || stock?.image_url || ''
-                          }));
-                          const img = item.image_url || stock?.image_url;
-                          if (img) setImagePreview(getDisplayableImageUrl(img));
-                        }
-                      }} required className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white">
-                        <option value="">Select item name</option>
-                        {filteredItems.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
+                      <SearchableSelect
+                        value={issueForm.itemsName}
+                        onChange={(val) => {
+                          const item = items.find(i => i.item_name === val && i.inventory_type === issueForm.inventoryType);
+                          if (item) {
+                            const stock = itemStockMap[item.id];
+                            setIssueForm(prev => ({
+                              ...prev,
+                              itemsName: val,
+                              itemId: item.id,
+                              department: item.department,
+                              openingBalance: stock?.current_stock ?? 0,
+                              perUnit: prev.forType === 'H3' ? '0' : String(item.rental_price ?? 0),
+                              unit: prev.forType === 'H3' ? '0' : String(item.damage_price ?? 0),
+                              imageUrl: item.image_url || stock?.image_url || ''
+                            }));
+                            const img = item.image_url || stock?.image_url;
+                            if (img) setImagePreview(getDisplayableImageUrl(img));
+                          } else {
+                            setIssueForm(prev => ({
+                              ...prev,
+                              itemsName: val,
+                              itemId: '',
+                              department: '',
+                              openingBalance: 0,
+                              imageUrl: ''
+                            }));
+                            setImagePreview(null);
+                          }
+                        }}
+                        options={filteredItems}
+                        placeholder={issueForm.inventoryType ? "Select item name" : "Select type first"}
+                        searchPlaceholder="Search item name..."
+                        disabled={!issueForm.inventoryType}
+                        size="form"
+                      />
                     </div>
                   </div>
                 )}
@@ -2164,160 +2149,50 @@ const Inventory = () => {
 
                 {isReturnModalOpen && !isEditing && (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                    <div className="space-y-1 relative" ref={returnPartyDropdownRef}>
+                    <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Party Name *</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={returnForm.partyName}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setReturnForm(p => ({ ...p, partyName: val }));
-                            setShowReturnPartyDropdown(true);
-                          }}
-                          onFocus={() => setShowReturnPartyDropdown(true)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              const matches = uniquePartyOptions.filter(opt => !returnForm.partyName || opt.toLowerCase().includes(returnForm.partyName.toLowerCase()));
-                              if (showReturnPartyDropdown && matches.length > 0) {
-                                e.preventDefault();
-                                setReturnForm(p => ({ ...p, partyName: matches[0], inventoryType: '', itemsName: '', itemId: '' }));
-                                setShowReturnPartyDropdown(false);
-                              }
-                            }
-                          }}
-                          placeholder="e.g. 6TH SEPTEMBER"
-                          required
-                          className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowReturnPartyDropdown(!showReturnPartyDropdown)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-violet-600 transition-colors"
-                        >
-                          <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showReturnPartyDropdown ? 'rotate-180' : ''}`} />
-                        </button>
-                      </div>
-
-                      {showReturnPartyDropdown && (
-                        <div className="absolute z-[160] w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
-                           {uniquePartyOptions
-                            .filter(opt => !returnForm.partyName || opt.toLowerCase().includes(returnForm.partyName.toLowerCase()))
-                            .map((opt, idx) => (
-                              <button
-                                key={idx}
-                                type="button"
-                                onClick={() => {
-                                  // Reset cascaded fields when party changes
-                                  setReturnForm(p => ({ ...p, partyName: opt, inventoryType: '', itemsName: '', itemId: '' }));
-                                  setShowReturnPartyDropdown(false);
-                                }}
-                                className="w-full px-4 py-2.5 text-left text-sm font-bold text-slate-600 hover:bg-violet-50 hover:text-violet-600 transition-colors border-b border-slate-50 last:border-0"
-                              >
-                                {opt}
-                              </button>
-                            ))}
-                          {uniquePartyOptions.filter(opt => !returnForm.partyName || opt.toLowerCase().includes(returnForm.partyName.toLowerCase())).length === 0 && (
-                            <div className="px-4 py-3 text-xs font-bold text-slate-400 italic text-center">No matching parties</div>
-                          )}
-                        </div>
-                      )}
+                      <SearchableSelect
+                        value={returnForm.partyName}
+                        onChange={(val) => {
+                          setReturnForm(p => ({ ...p, partyName: val, inventoryType: '', itemsName: '', itemId: '' }));
+                        }}
+                        options={uniquePartyOptions}
+                        placeholder="e.g. 6TH SEPTEMBER"
+                        searchPlaceholder="Search party..."
+                        size="form"
+                      />
                     </div>
 
-                    <div className="space-y-1 relative" ref={returnInvTypeDropdownRef}>
+                    <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Inventory Type *</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={returnForm.inventoryType}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setReturnForm(p => ({ ...p, inventoryType: val, itemsName: '', itemId: '' }));
-                            setShowReturnInvTypeDropdown(true);
-                          }}
-                          onFocus={() => setShowReturnInvTypeDropdown(true)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              const matches = returnInvTypeOptions.filter(opt => !returnForm.inventoryType || opt.toLowerCase().includes(returnForm.inventoryType.toLowerCase()));
-                              if (showReturnInvTypeDropdown && matches.length > 0) {
-                                e.preventDefault();
-                                setReturnForm(p => ({ ...p, inventoryType: matches[0], itemsName: '', itemId: '' }));
-                                setShowReturnInvTypeDropdown(false);
-                              }
-                            }
-                          }}
-                          required
-                          disabled={!returnForm.partyName}
-                          placeholder={returnForm.partyName ? 'Type or select...' : 'Select party first'}
-                          className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white disabled:bg-slate-50 disabled:text-slate-400"
-                        />
-                        <button type="button" disabled={!returnForm.partyName} onClick={() => setShowReturnInvTypeDropdown(!showReturnInvTypeDropdown)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-violet-600 transition-colors disabled:opacity-50">
-                          <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showReturnInvTypeDropdown ? 'rotate-180' : ''}`} />
-                        </button>
-                      </div>
-
-                      {showReturnInvTypeDropdown && (
-                        <div className="absolute z-[160] w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
-                          {returnInvTypeOptions
-                            .filter(opt => !returnForm.inventoryType || opt.toLowerCase().includes(returnForm.inventoryType.toLowerCase()))
-                            .map((opt, idx) => (
-                              <button key={idx} type="button" onClick={() => { setReturnForm(p => ({ ...p, inventoryType: opt, itemsName: '', itemId: '' })); setShowReturnInvTypeDropdown(false); }} className="w-full px-4 py-2.5 text-left text-sm font-bold text-slate-600 hover:bg-violet-50 hover:text-violet-600 transition-colors border-b border-slate-50 last:border-0">
-                                {opt}
-                              </button>
-                            ))}
-                          {returnInvTypeOptions.filter(opt => !returnForm.inventoryType || opt.toLowerCase().includes(returnForm.inventoryType.toLowerCase())).length === 0 && (
-                            <div className="px-4 py-3 text-xs font-bold text-slate-400 italic text-center">No pending inventory types for this party</div>
-                          )}
-                        </div>
-                      )}
+                      <SearchableSelect
+                        value={returnForm.inventoryType}
+                        onChange={(val) => {
+                          setReturnForm(p => ({ ...p, inventoryType: val, itemsName: '', itemId: '' }));
+                        }}
+                        options={returnInvTypeOptions}
+                        disabled={!returnForm.partyName}
+                        placeholder={returnForm.partyName ? 'Select type...' : 'Select party first'}
+                        searchPlaceholder="Search type..."
+                        emptyMessage="No pending inventory types for this party"
+                        size="form"
+                      />
                     </div>
 
-                    <div className="space-y-1 relative" ref={returnItemDropdownRef}>
+                    <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Item Name *</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={returnForm.itemsName}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setReturnForm(p => ({ ...p, itemsName: val }));
-                            setShowReturnItemDropdown(true);
-                          }}
-                          onFocus={() => setShowReturnItemDropdown(true)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              const matches = returnItemOptions.filter(opt => !returnForm.itemsName || opt.toLowerCase().includes(returnForm.itemsName.toLowerCase()));
-                              if (showReturnItemDropdown && matches.length > 0) {
-                                e.preventDefault();
-                                handleSelectReturnItem(matches[0]);
-                                setShowReturnItemDropdown(false);
-                              }
-                            }
-                          }}
-                          required
-                          disabled={!returnForm.inventoryType || !returnForm.partyName}
-                          placeholder={!returnForm.partyName ? 'Select party first' : !returnForm.inventoryType ? 'Select type first' : 'Type or select...'}
-                          className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white disabled:bg-slate-50 disabled:text-slate-400"
-                        />
-                        <button type="button" disabled={!returnForm.inventoryType || !returnForm.partyName} onClick={() => setShowReturnItemDropdown(!showReturnItemDropdown)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-violet-600 transition-colors disabled:opacity-50">
-                          <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showReturnItemDropdown ? 'rotate-180' : ''}`} />
-                        </button>
-                      </div>
-
-                      {showReturnItemDropdown && (
-                        <div className="absolute z-[160] w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
-                          {returnItemOptions
-                            .filter(opt => !returnForm.itemsName || opt.toLowerCase().includes(returnForm.itemsName.toLowerCase()))
-                            .map((opt, idx) => (
-                              <button key={idx} type="button" onClick={() => { handleSelectReturnItem(opt); setShowReturnItemDropdown(false); }} className="w-full px-4 py-2.5 text-left text-sm font-bold text-slate-600 hover:bg-violet-50 hover:text-violet-600 transition-colors border-b border-slate-50 last:border-0">
-                                {opt}
-                              </button>
-                            ))}
-                          {returnItemOptions.filter(opt => !returnForm.itemsName || opt.toLowerCase().includes(returnForm.itemsName.toLowerCase())).length === 0 && (
-                            <div className="px-4 py-3 text-xs font-bold text-slate-400 italic text-center">No pending items to return for this party &amp; type</div>
-                          )}
-                        </div>
-                      )}
+                      <SearchableSelect
+                        value={returnForm.itemsName}
+                        onChange={(val) => {
+                          handleSelectReturnItem(val);
+                        }}
+                        options={returnItemOptions}
+                        disabled={!returnForm.inventoryType || !returnForm.partyName}
+                        placeholder={!returnForm.partyName ? 'Select party first' : !returnForm.inventoryType ? 'Select type first' : 'Select item...'}
+                        searchPlaceholder="Search item..."
+                        emptyMessage="No pending items to return for this party & type"
+                        size="form"
+                      />
                     </div>
                   </div>
                 )}
@@ -2403,50 +2278,17 @@ const Inventory = () => {
                 {isIssueModalOpen && (
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                      <div className="space-y-1 relative" ref={partyDropdownRef}>
+                      <div className="space-y-1">
                         <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Party Name *</label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={issueForm.partyName}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setIssueForm(p => ({ ...p, partyName: val }));
-                              setShowPartyDropdown(true);
-                            }}
-                            onFocus={() => setShowPartyDropdown(true)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                const matches = uniquePartyOptions.filter(opt => !issueForm.partyName || opt.toLowerCase().includes(issueForm.partyName.toLowerCase()));
-                                if (showPartyDropdown && matches.length > 0) {
-                                  e.preventDefault();
-                                  handleSelectParty(matches[0]);
-                                  setShowPartyDropdown(false);
-                                }
-                              }
-                            }}
-                            required
-                            placeholder="Type or select..."
-                            className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white"
-                          />
-                          <button type="button" onClick={() => setShowPartyDropdown(!showPartyDropdown)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-violet-600 transition-colors">
-                            <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showPartyDropdown ? 'rotate-180' : ''}`} />
-                          </button>
-                        </div>
-                        {showPartyDropdown && (
-                          <div className="absolute z-[160] w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
-                            {uniquePartyOptions
-                              .filter(opt => !issueForm.partyName || opt.toLowerCase().includes(issueForm.partyName.toLowerCase()))
-                              .map((opt, idx) => (
-                                <button key={idx} type="button" onClick={() => handleSelectParty(opt)} className="w-full px-4 py-2.5 text-left text-sm font-bold text-slate-600 hover:bg-violet-50 hover:text-violet-600 transition-colors border-b border-slate-50 last:border-0">
-                                  {opt}
-                                </button>
-                              ))}
-                            {uniquePartyOptions.filter(opt => !issueForm.partyName || opt.toLowerCase().includes(issueForm.partyName.toLowerCase())).length === 0 && (
-                              <div className="px-4 py-3 text-xs font-bold text-slate-400 italic text-center">No matching parties</div>
-                            )}
-                          </div>
-                        )}
+                        <SearchableSelect
+                          value={issueForm.partyName}
+                          onChange={(val) => handleSelectParty(val)}
+                          options={uniquePartyOptions}
+                          placeholder="Type or select..."
+                          searchPlaceholder="Search or type party..."
+                          creatable={true}
+                          size="form"
+                        />
                       </div>
                       <div className="space-y-1">
                         <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Dishes</label>
@@ -2458,12 +2300,14 @@ const Inventory = () => {
                       </div>
                       <div className="space-y-1">
                         <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Event Type *</label>
-                        <select value={issueForm.eventTime} onChange={(e) => setIssueForm(p => ({ ...p, eventTime: e.target.value }))} required className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 text-sm font-medium bg-white outline-none">
-                          <option value="">Select time</option>
-                          {dropdownOptions.eventTimeOptions.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
+                        <SearchableSelect
+                          value={issueForm.eventTime}
+                          onChange={(val) => setIssueForm(p => ({ ...p, eventTime: val }))}
+                          options={dropdownOptions.eventTimeOptions || []}
+                          placeholder="Select time"
+                          searchPlaceholder="Search event type..."
+                          size="form"
+                        />
                       </div>
                     </div>
 
