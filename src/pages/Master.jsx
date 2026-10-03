@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
 import Pagination from "../components/Pagination";
+import SearchableSelect from "../components/SearchableSelect";
 import { supabase } from "../utils/supabaseClient";
 import { uploadImage } from "../utils/supabaseStorage";
 import { normalizeForMatch } from "../utils/helpers";
@@ -195,19 +196,6 @@ export default function Master() {
   const inventoryTypes = useMemo(() => dropdowns.filter(d => d.category === DROPDOWN_CATEGORY.INVENTORY_TYPE), [dropdowns]);
   const departments = useMemo(() => dropdowns.filter(d => d.category === DROPDOWN_CATEGORY.DEPARTMENT), [dropdowns]);
   const units = useMemo(() => dropdowns.filter(d => d.category === DROPDOWN_CATEGORY.UNIT), [dropdowns]);
-
-  // Department is a global, independent admin-managed list — most departments
-  // only ever get used with ONE inventory type in practice (e.g. "Wooden"
-  // only exists under Decor/Disposal, not Crockery). Scoping the dropdown to
-  // departments already used by existing items under the chosen type avoids
-  // creating a nonsensical pairing. Falls back to the full list when the type
-  // has no items yet (or none selected), so genuinely new pairings still work.
-  const itemFormDepartmentOptions = useMemo(() => {
-    if (!itemForm.inventory_type) return departments;
-    const scoped = [...new Set(items.filter(i => i.inventory_type === itemForm.inventory_type).map(i => i.department).filter(Boolean))];
-    if (scoped.length === 0) return departments;
-    return departments.filter(d => scoped.includes(d.value));
-  }, [items, itemForm.inventory_type, departments]);
 
   const openAddItem = () => {
     setItemForm(emptyItemForm);
@@ -391,35 +379,41 @@ export default function Master() {
                   />
                 </div>
 
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="h-9 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer max-w-[130px] truncate"
-                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '12px' }}
-                >
-                  <option value="">All Types</option>
-                  {typeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+                <div className="w-36">
+                  <SearchableSelect
+                    value={filterType}
+                    onChange={setFilterType}
+                    options={typeOptions}
+                    allOptionLabel="All Types"
+                    placeholder="All Types"
+                    size="sm"
+                    allowClear={false}
+                  />
+                </div>
 
-                <select
-                  value={filterDept}
-                  onChange={(e) => setFilterDept(e.target.value)}
-                  className="h-9 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer max-w-[150px] truncate"
-                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '12px' }}
-                >
-                  <option value="">All Departments</option>
-                  {deptOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+                <div className="w-44">
+                  <SearchableSelect
+                    value={filterDept}
+                    onChange={setFilterDept}
+                    options={deptOptions}
+                    allOptionLabel="All Departments"
+                    placeholder="All Departments"
+                    size="sm"
+                    allowClear={false}
+                  />
+                </div>
 
-                <select
-                  value={filterItem}
-                  onChange={(e) => setFilterItem(e.target.value)}
-                  className="h-9 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all appearance-none cursor-pointer max-w-[150px] truncate"
-                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '12px' }}
-                >
-                  <option value="">All Items</option>
-                  {itemOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+                <div className="w-44">
+                  <SearchableSelect
+                    value={filterItem}
+                    onChange={setFilterItem}
+                    options={itemOptions}
+                    allOptionLabel="All Items"
+                    placeholder="All Items"
+                    size="sm"
+                    allowClear={false}
+                  />
+                </div>
 
                 {hasActiveFilters && (
                   <button
@@ -600,29 +594,41 @@ export default function Master() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Inventory Type</label>
-                    <select value={itemForm.inventory_type} onChange={(e) => setItemForm(p => ({ ...p, inventory_type: e.target.value, department: "" }))}
-                      className="mt-1 h-10 w-full px-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 outline-none text-sm">
-                      <option value="">Select type...</option>
-                      {inventoryTypes.map(opt => <option key={opt.id} value={opt.value}>{opt.value}</option>)}
-                    </select>
+                    <div className="mt-1">
+                      <SearchableSelect
+                        value={itemForm.inventory_type}
+                        onChange={(val) => setItemForm(p => ({ ...p, inventory_type: val }))}
+                        options={inventoryTypes}
+                        placeholder="Select type..."
+                        searchPlaceholder="Search type..."
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Department</label>
-                    <select value={itemForm.department} onChange={(e) => setItemForm(p => ({ ...p, department: e.target.value }))}
-                      className="mt-1 h-10 w-full px-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 outline-none text-sm">
-                      <option value="">Select department...</option>
-                      {itemFormDepartmentOptions.map(opt => <option key={opt.id} value={opt.value}>{opt.value}</option>)}
-                    </select>
+                    <div className="mt-1">
+                      <SearchableSelect
+                        value={itemForm.department}
+                        onChange={(val) => setItemForm(p => ({ ...p, department: val }))}
+                        options={departments}
+                        placeholder="Select department..."
+                        searchPlaceholder="Search department..."
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Unit</label>
-                    <select value={itemForm.unit} onChange={(e) => setItemForm(p => ({ ...p, unit: e.target.value }))}
-                      className="mt-1 h-10 w-full px-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 outline-none text-sm">
-                      <option value="">Select unit...</option>
-                      {units.map(opt => <option key={opt.id} value={opt.value}>{opt.value}</option>)}
-                    </select>
+                    <div className="mt-1">
+                      <SearchableSelect
+                        value={itemForm.unit}
+                        onChange={(val) => setItemForm(p => ({ ...p, unit: val }))}
+                        options={units}
+                        placeholder="Select unit..."
+                        searchPlaceholder="Search unit..."
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rental ₹</label>
