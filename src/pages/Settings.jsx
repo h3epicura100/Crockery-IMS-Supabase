@@ -28,6 +28,7 @@ export default function Settings() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState({});
   const [deletingId, setDeletingId] = useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   const currentUsername = sessionStorage.getItem("username");
 
@@ -101,7 +102,7 @@ export default function Settings() {
     fetchUsers();
   };
 
-  const handleDelete = async (u) => {
+  const promptDeleteUser = (u) => {
     if (u.username === currentUsername) {
       showToast("You can't delete your own account while logged in.", "error");
       return;
@@ -110,13 +111,18 @@ export default function Settings() {
       showToast("Can't delete the last remaining admin.", "error");
       return;
     }
-    if (!window.confirm(`Delete user "${u.username}"?`)) return;
+    setUserToDelete(u);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
+    const u = userToDelete;
     setDeletingId(u.id);
     const { error } = await supabase.from(TABLES.LOGIN).delete().eq("id", u.id);
     setDeletingId(null);
+    setUserToDelete(null);
     if (error) { showToast(error.message, "error"); return; }
-    showToast("User deleted");
+    showToast(`User "${u.username}" deleted successfully`);
     fetchUsers();
   };
 
@@ -179,9 +185,10 @@ export default function Settings() {
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
                           <button
-                            onClick={() => handleDelete(u)}
+                            onClick={() => promptDeleteUser(u)}
                             disabled={deletingId === u.id}
                             className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-40"
+                            title={`Delete ${u.username}`}
                           >
                             {deletingId === u.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                           </button>
@@ -259,6 +266,67 @@ export default function Settings() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modern In-App Confirmation Dialog for Deleting User */}
+        {userToDelete && (
+          <div
+            className="fixed inset-0 z-[250] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+            onClick={() => !deletingId && setUserToDelete(null)}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 sm:p-6 animate-in zoom-in-95 duration-200 border border-slate-100 flex flex-col font-sans"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-3.5">
+                <div className="h-11 w-11 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center shrink-0 border border-red-100">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Delete User</h3>
+                  <p className="text-xs text-slate-400 font-medium">Remove user account</p>
+                </div>
+              </div>
+
+              <div className="my-2 p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-600 space-y-2">
+                <p className="text-slate-700 font-medium">
+                  Are you sure you want to delete user{" "}
+                  <span className="font-bold text-red-600 bg-red-50/80 px-1.5 py-0.5 rounded border border-red-100">
+                    "{userToDelete.name || userToDelete.username}"
+                  </span>{" "}
+                  <span className="text-slate-400">({userToDelete.username})</span>?
+                </p>
+                <div className="p-2.5 rounded-lg bg-red-50/60 border border-red-100/60 text-[11px] text-red-700 flex items-start gap-1.5">
+                  <span className="font-bold text-red-500">⚠</span>
+                  <span>This user will immediately lose access to the system. This action cannot be undone.</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-emerald-50/80 border border-emerald-100/80 text-[11px] text-emerald-800 flex items-start gap-1.5">
+                  <span className="font-bold text-emerald-600">✓</span>
+                  <span>Existing records, issues, returns, and transactions will <strong>NOT</strong> be deleted or affected.</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setUserToDelete(null)}
+                  disabled={deletingId !== null}
+                  className="h-9 px-4 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={deletingId !== null}
+                  className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-all flex items-center gap-1.5 shadow-sm shadow-red-200 disabled:opacity-50"
+                >
+                  {deletingId !== null && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  <span>{deletingId !== null ? "Deleting..." : "Delete User"}</span>
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -29,7 +29,10 @@ import {
   X,
   Calendar,
   FileText,
-  Loader2
+  Loader2,
+  Clock,
+  AlertCircle,
+  BarChart3
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
 import Pagination from "../components/Pagination";
@@ -39,10 +42,16 @@ const PAGE_SIZE = 50;
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("today"); // 'today' or 'history'
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("today"); // 'today', 'history', or 'summary'
   const [showExactValues, setShowExactValues] = useState(false);
   const [inventoryData, setInventoryData] = useState([]);
   const [historyData, setHistoryData] = useState([]);
+  const [summaryIssues, setSummaryIssues] = useState([]);
+  const [summaryReturns, setSummaryReturns] = useState([]);
+  const [summarySubTab, setSummarySubTab] = useState("items"); // 'items' or 'issued'
+  const [summaryFilterPill, setSummaryFilterPill] = useState("all"); // 'all', 'issued', 'pending', 'returned'
+  const [summaryPage, setSummaryPage] = useState(1);
   
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("");
@@ -218,6 +227,51 @@ export default function Dashboard() {
     }
   }, [startDate, endDate]);
 
+  const fetchSummaryData = useCallback(async () => {
+    setSummaryLoading(true);
+    try {
+      let allIssues = [];
+      const pageSize = 1000;
+      for (let page = 0; ; page++) {
+        const { data, error } = await supabase
+          .from(TABLES.ISSUES)
+          .select(`
+            id, serial_no, item_id, party_name, event_date, issue_qty,
+            venue_name, remarks, event_type, for_type, issuer, dishes, created_at,
+            ${withItemMaster('item_name, inventory_type, department, image_url')}
+          `)
+          .order('created_at', { ascending: false })
+          .range(page * pageSize, page * pageSize + pageSize - 1);
+
+        if (error) throw error;
+        allIssues = allIssues.concat(data || []);
+        if (!data || data.length < pageSize) break;
+      }
+      setSummaryIssues(allIssues);
+
+      let allReturns = [];
+      for (let page = 0; ; page++) {
+        const { data, error } = await supabase
+          .from(TABLES.RETURNS)
+          .select(`
+            id, serial_no, item_id, party_name, return_date, issue_qty, return_qty,
+            damage_qty, missing_qty, created_at
+          `)
+          .order('created_at', { ascending: false })
+          .range(page * pageSize, page * pageSize + pageSize - 1);
+
+        if (error) throw error;
+        allReturns = allReturns.concat(data || []);
+        if (!data || data.length < pageSize) break;
+      }
+      setSummaryReturns(allReturns);
+    } catch (err) {
+      console.error("Dashboard summary fetch error:", err);
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -225,13 +279,16 @@ export default function Dashboard() {
   useEffect(() => {
     if (activeTab === "history") {
       fetchHistoryData();
+    } else if (activeTab === "summary" && summaryIssues.length === 0) {
+      fetchSummaryData();
     }
-  }, [activeTab, fetchHistoryData]);
+  }, [activeTab, fetchHistoryData, fetchSummaryData, summaryIssues.length]);
 
   useEffect(() => {
     setTodayPage(1);
     setHistoryPage(1);
-  }, [activeTab, filterType, filterDept, filterName, startDate, endDate, searchTerm]);
+    setSummaryPage(1);
+  }, [activeTab, summarySubTab, summaryFilterPill, filterType, filterDept, filterName, startDate, endDate, searchTerm]);
 
   const columnConfig = activeTab === "today" ? todayColumns : historyColumns;
 
@@ -242,7 +299,7 @@ export default function Dashboard() {
     return [item.name, item.type, item.department].some(v => v && normalizeForMatch(v).includes(s));
   }, []);
 
-  const activeSource = activeTab === "today" ? inventoryData : historyData;
+  const activeSource = activeTab === "history" ? historyData : inventoryData;
 
   // FACETED OPTIONS CALCULATION
   const typeOptions = useMemo(() => {
@@ -356,6 +413,171 @@ export default function Dashboard() {
     };
   }, [currentFilteredData]);
 
+  // AGGREGATED ITEM SUMMARIES (All Items with stock, issued, remaining, returned)
+  const itemSummaries = useMemo(() => {
+    const issueAgg = {};
+    summaryIssues.forEach(iss => {
+      if (!issueAgg[iss.item_id]) {
+        issueAgg[iss.item_id] = { issued: 0, parties: new Set() };
+      }
+      issueAgg[iss.item_id].issued += (parseNumber(iss.issue_qty) || 0);
+      if (iss.party_name) issueAgg[iss.item_id].parties.add(iss.party_name);
+    });
+
+    const returnAgg = {};
+    summaryReturns.forEach(ret => {
+      if (!returnAgg[ret.item_id]) {
+        returnAgg[ret.item_id] = { returned: 0, damage: 0, missing: 0 };
+      }
+      returnAgg[ret.item_id].returned += (parseNumber(ret.return_qty) || 0);
+      returnAgg[ret.item_id].damage += (parseNumber(ret.damage_qty) || 0);
+      returnAgg[ret.item_id].missing += (parseNumber(ret.missing_qty) || 0);
+    });
+
+    return inventoryData.map((item, idx) => {
+      const issInfo = issueAgg[item.id] || { issued: 0, parties: new Set() };
+      const retInfo = returnAgg[item.id] || { returned: 0, damage: 0, missing: 0 };
+
+      const totalStock = (item.opening || 0) + (item.purchase || 0);
+      const totalIssued = issInfo.issued;
+      const totalReturned = retInfo.returned;
+      const totalDamage = retInfo.damage;
+      const totalMissing = retInfo.missing;
+      const remainingOut = Math.max(0, totalIssued - totalReturned - totalDamage - totalMissing);
+      const inStore = Math.max(0, totalStock - remainingOut - totalDamage - totalMissing);
+
+      return {
+        ...item,
+        serial: idx + 1,
+        totalStock,
+        totalIssued,
+        totalReturned,
+        totalDamage,
+        totalMissing,
+        remainingOut,
+        inStore,
+        partyCount: issInfo.parties.size
+      };
+    });
+  }, [inventoryData, summaryIssues, summaryReturns]);
+
+  // DETAILED ISSUED ITEMS LIST (All individual issue records with return status)
+  const summaryIssuedList = useMemo(() => {
+    return summaryIssues
+      .filter(iss => (parseNumber(iss.issue_qty) || 0) > 0)
+      .map(iss => {
+        const matched = summaryReturns.filter(r => r.item_id === iss.item_id && r.party_name === iss.party_name);
+        const retQty = matched.reduce((s, r) => s + (parseNumber(r.return_qty) || 0), 0);
+        const dmgQty = matched.reduce((s, r) => s + (parseNumber(r.damage_qty) || 0), 0);
+        const misQty = matched.reduce((s, r) => s + (parseNumber(r.missing_qty) || 0), 0);
+        const accounted = retQty + dmgQty + misQty;
+        const issQty = parseNumber(iss.issue_qty) || 0;
+        const remaining = Math.max(0, issQty - accounted);
+
+        let status = 'returned';
+        if (issQty > 0) {
+          if (remaining === 0) status = 'returned';
+          else if (accounted > 0) status = 'partial';
+          else status = 'pending';
+        }
+
+        return {
+          id: iss.id,
+          serial: iss.serial_no,
+          itemId: iss.item_id,
+          name: iss.item_master?.item_name || '-',
+          type: iss.item_master?.inventory_type || '-',
+          department: iss.item_master?.department || '-',
+          imageUrl: iss.item_master?.image_url,
+          party: iss.party_name || '-',
+          date: iss.event_date,
+          venue: iss.venue_name || '-',
+          eventType: iss.event_type || '-',
+          issuer: iss.issuer || '-',
+          forType: iss.for_type || '-',
+          dishes: iss.dishes || '-',
+          issued: issQty,
+          returned: retQty,
+          damaged: dmgQty,
+          missing: misQty,
+          remaining,
+          status
+        };
+      })
+      .sort((a, b) => {
+        // Show pending & partial returns first, then order by serial number descending
+        const aPending = a.status === 'pending' || a.status === 'partial';
+        const bPending = b.status === 'pending' || b.status === 'partial';
+        if (aPending && !bPending) return -1;
+        if (!aPending && bPending) return 1;
+        return (b.serial || '').localeCompare(a.serial || '', undefined, { numeric: true });
+      });
+  }, [summaryIssues, summaryReturns]);
+
+  // SUMMARY CARD STATS
+  const summaryCardStats = useMemo(() => {
+    let stock = 0, issued = 0, returned = 0, remaining = 0;
+    itemSummaries.forEach(item => {
+      stock += item.totalStock;
+      issued += item.totalIssued;
+      returned += item.totalReturned;
+      remaining += item.remainingOut;
+    });
+    return {
+      totalStock: stock,
+      totalIssued: issued,
+      totalReturned: returned,
+      totalRemaining: remaining
+    };
+  }, [itemSummaries]);
+
+  // FILTERED SUMMARY DATA
+  const filteredSummaryItems = useMemo(() => {
+    const s = normalizeForMatch(searchTerm);
+    return itemSummaries.filter(item => {
+      const matchesSearch = !s || [item.name, item.type, item.department].some(v => v && normalizeForMatch(v).includes(s));
+      const matchesType = !filterType || item.type === filterType;
+      const matchesDept = !filterDept || item.department === filterDept;
+      const matchesName = !filterName || item.name === filterName;
+
+      let matchesPill = true;
+      if (summaryFilterPill === "issued") matchesPill = item.totalIssued > 0;
+      else if (summaryFilterPill === "pending") matchesPill = item.remainingOut > 0;
+
+      return matchesSearch && matchesType && matchesDept && matchesName && matchesPill;
+    }).sort((a, b) => {
+      if (b.remainingOut !== a.remainingOut) return b.remainingOut - a.remainingOut;
+      if (b.totalIssued !== a.totalIssued) return b.totalIssued - a.totalIssued;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+  }, [itemSummaries, searchTerm, filterType, filterDept, filterName, summaryFilterPill]);
+
+  const filteredSummaryIssued = useMemo(() => {
+    const s = normalizeForMatch(searchTerm);
+    return summaryIssuedList.filter(iss => {
+      const matchesSearch = !s || [iss.name, iss.type, iss.department, iss.party, iss.venue, iss.issuer, iss.serial].some(v => v && normalizeForMatch(v).includes(s));
+      const matchesType = !filterType || iss.type === filterType;
+      const matchesDept = !filterDept || iss.department === filterDept;
+      const matchesName = !filterName || iss.name === filterName;
+
+      let matchesPill = true;
+      if (summaryFilterPill === "pending") matchesPill = iss.status === 'pending' || iss.status === 'partial';
+      else if (summaryFilterPill === "returned") matchesPill = iss.status === 'returned';
+
+      return matchesSearch && matchesType && matchesDept && matchesName && matchesPill;
+    });
+  }, [summaryIssuedList, searchTerm, filterType, filterDept, filterName, summaryFilterPill]);
+
+  const displayedSummaryItems = useMemo(() => {
+    const start = (summaryPage - 1) * PAGE_SIZE;
+    return filteredSummaryItems.slice(start, start + PAGE_SIZE);
+  }, [filteredSummaryItems, summaryPage]);
+
+  const displayedSummaryIssued = useMemo(() => {
+    const start = (summaryPage - 1) * PAGE_SIZE;
+    return filteredSummaryIssued.slice(start, start + PAGE_SIZE);
+  }, [filteredSummaryIssued, summaryPage]);
+
   // eslint-disable-next-line no-unused-vars
   const MetricCard = ({ title, value, icon: Icon, color, loading: cardLoading }) => (
     <div
@@ -383,20 +605,37 @@ export default function Dashboard() {
           <div className="flex flex-wrap items-center justify-between gap-3 px-3 sm:px-8 pt-4 sm:pt-6 pb-2">
             <h1 className="text-xl sm:text-3xl font-bold text-slate-900 tracking-tight">Executive Dashboard</h1>
             <div className="flex items-center gap-3">
-              <button onClick={() => activeTab === "today" ? fetchDashboardData() : fetchHistoryData()} className="p-2.5 sm:p-3.5 bg-white border border-violet-100 rounded-xl text-slate-400 hover:text-violet-600 shadow-xl shadow-violet-500/5 transition-all active:scale-95">
-                <RefreshCw className={`h-4.5 w-4.5 ${(loading || historyLoading) ? 'animate-spin' : ''}`} />
+              <button
+                onClick={() => {
+                  if (activeTab === "today") fetchDashboardData();
+                  else if (activeTab === "history") fetchHistoryData();
+                  else fetchSummaryData();
+                }}
+                className="p-2.5 sm:p-3.5 bg-white border border-violet-100 rounded-xl text-slate-400 hover:text-violet-600 shadow-xl shadow-violet-500/5 transition-all active:scale-95"
+                title="Refresh Data"
+              >
+                <RefreshCw className={`h-4.5 w-4.5 ${(loading || historyLoading || summaryLoading) ? 'animate-spin' : ''}`} />
               </button>
               <div className="h-8 w-[1px] bg-slate-200 mx-1"></div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Last updated: <span className="text-slate-900">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 px-3 sm:px-6">
-            <MetricCard title="Total Purchased" value={formatNumber(dashboardStats.totalPurchased)} icon={Package} color="bg-violet-600" loading={activeTab === "today" ? loading : historyLoading} />
-            <MetricCard title="Opening Balance" value={formatNumber(dashboardStats.openingBalance)} icon={Layout} color="bg-fuchsia-600" loading={activeTab === "today" ? loading : historyLoading} />
-            <MetricCard title="Total Issued" value={formatNumber(dashboardStats.totalIssued)} icon={Activity} color="bg-blue-500" loading={activeTab === "today" ? loading : historyLoading} />
-            <MetricCard title="Total Returned" value={formatNumber(dashboardStats.totalReturned)} icon={RefreshCw} color="bg-emerald-500" loading={activeTab === "today" ? loading : historyLoading} />
-          </div>
+          {activeTab === "summary" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 px-3 sm:px-6">
+              <MetricCard title="Total Stock" value={formatNumber(summaryCardStats.totalStock)} icon={Package} color="bg-violet-600" loading={summaryLoading} />
+              <MetricCard title="Total Issued" value={formatNumber(summaryCardStats.totalIssued)} icon={Activity} color="bg-blue-500" loading={summaryLoading} />
+              <MetricCard title="Total Returned" value={formatNumber(summaryCardStats.totalReturned)} icon={RefreshCw} color="bg-emerald-500" loading={summaryLoading} />
+              <MetricCard title="Remaining Out" value={formatNumber(summaryCardStats.totalRemaining)} icon={Clock} color="bg-amber-500" loading={summaryLoading} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 px-3 sm:px-6">
+              <MetricCard title="Total Purchased" value={formatNumber(dashboardStats.totalPurchased)} icon={Package} color="bg-violet-600" loading={activeTab === "today" ? loading : historyLoading} />
+              <MetricCard title="Opening Balance" value={formatNumber(dashboardStats.openingBalance)} icon={Layout} color="bg-fuchsia-600" loading={activeTab === "today" ? loading : historyLoading} />
+              <MetricCard title="Total Issued" value={formatNumber(dashboardStats.totalIssued)} icon={Activity} color="bg-blue-500" loading={activeTab === "today" ? loading : historyLoading} />
+              <MetricCard title="Total Returned" value={formatNumber(dashboardStats.totalReturned)} icon={RefreshCw} color="bg-emerald-500" loading={activeTab === "today" ? loading : historyLoading} />
+            </div>
+          )}
 
           <div className="bg-white mx-3 sm:mx-6 mb-6 rounded-xl border border-slate-100 shadow-sm flex flex-col flex-1 min-h-0 relative">
             
@@ -414,16 +653,56 @@ export default function Dashboard() {
                 >
                   History
                 </button>
+                <button 
+                  onClick={() => setActiveTab("summary")}
+                  className={`px-4 sm:px-6 py-2 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === "summary" ? 'bg-slate-50 text-violet-600 border-x border-t border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  Item Summary
+                </button>
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3 px-3 sm:px-6 py-3 sm:py-4 bg-slate-50/50">
                 <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto min-w-0">
-                  <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight whitespace-nowrap">Inventory Details</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight whitespace-nowrap">
+                    {activeTab === "summary" ? "Inventory Summary" : "Inventory Details"}
+                  </h3>
+
+                  {activeTab === "summary" && (
+                    <div className="flex items-center gap-1 p-0.5 bg-slate-200/60 rounded-xl">
+                      <button
+                        onClick={() => {
+                          setSummarySubTab("items");
+                          setSummaryFilterPill("all");
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          summarySubTab === "items"
+                            ? "bg-white text-violet-700 shadow-sm"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        All Items ({itemSummaries.length})
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSummarySubTab("issued");
+                          setSummaryFilterPill("all");
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          summarySubTab === "issued"
+                            ? "bg-white text-violet-700 shadow-sm"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        Issued Records ({summaryIssuedList.length})
+                      </button>
+                    </div>
+                  )}
+
                   <div className="relative w-full sm:w-52 md:w-60 group">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 group-focus-within:text-violet-500 transition-colors" />
                     <input
                       type="text"
-                      placeholder="Search..."
+                      placeholder={activeTab === "summary" && summarySubTab === "issued" ? "Search item, party, venue..." : "Search..."}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="h-9 w-full pl-10 pr-4 rounded-xl bg-white border border-slate-200 focus:border-violet-300 focus:ring-4 focus:ring-violet-500/5 outline-none text-xs text-slate-600 font-medium transition-all"
@@ -432,6 +711,64 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  {activeTab === "summary" && summarySubTab === "items" && (
+                    <div className="flex items-center gap-1 p-0.5 bg-white border border-slate-200 rounded-xl shadow-sm">
+                      <button
+                        onClick={() => setSummaryFilterPill("all")}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                          summaryFilterPill === "all" ? "bg-violet-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        All
+                      </button>
+                      <button
+                        onClick={() => setSummaryFilterPill("issued")}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                          summaryFilterPill === "issued" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        Issued ({itemSummaries.filter(i => i.totalIssued > 0).length})
+                      </button>
+                      <button
+                        onClick={() => setSummaryFilterPill("pending")}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                          summaryFilterPill === "pending" ? "bg-amber-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        Pending Return ({itemSummaries.filter(i => i.remainingOut > 0).length})
+                      </button>
+                    </div>
+                  )}
+
+                  {activeTab === "summary" && summarySubTab === "issued" && (
+                    <div className="flex items-center gap-1 p-0.5 bg-white border border-slate-200 rounded-xl shadow-sm">
+                      <button
+                        onClick={() => setSummaryFilterPill("all")}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                          summaryFilterPill === "all" ? "bg-violet-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        All ({summaryIssuedList.length})
+                      </button>
+                      <button
+                        onClick={() => setSummaryFilterPill("pending")}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                          summaryFilterPill === "pending" ? "bg-amber-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        Pending ({summaryIssuedList.filter(i => i.status === 'pending' || i.status === 'partial').length})
+                      </button>
+                      <button
+                        onClick={() => setSummaryFilterPill("returned")}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                          summaryFilterPill === "returned" ? "bg-emerald-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        Returned ({summaryIssuedList.filter(i => i.status === 'returned').length})
+                      </button>
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap items-center gap-1.5 p-1 bg-white border border-slate-200 rounded-2xl shadow-sm max-w-full">
                     <select
                       value={filterName}
@@ -477,10 +814,10 @@ export default function Dashboard() {
                       </div>
                     )}
 
-                    {(startDate || endDate || filterType || filterDept || filterName || searchTerm) && (
+                    {(startDate || endDate || filterType || filterDept || filterName || searchTerm || summaryFilterPill !== "all") && (
                       <button 
                         onClick={() => {
-                          setFilterType(""); setFilterDept(""); setFilterName(""); setStartDate(""); setEndDate(""); setSearchTerm("");
+                          setFilterType(""); setFilterDept(""); setFilterName(""); setStartDate(""); setEndDate(""); setSearchTerm(""); setSummaryFilterPill("all");
                         }}
                         className="p-1 px-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors flex items-center gap-1"
                       >
@@ -501,110 +838,342 @@ export default function Dashboard() {
                     </button>
                   )}
 
-                  <div className="relative">
-                    <button
-                      onClick={() => setIsColMenuOpen(!isColMenuOpen)}
-                      className={`h-9 px-3 sm:px-4 rounded-xl border flex items-center gap-2 text-[10px] font-black tracking-widest transition-all whitespace-nowrap ${isColMenuOpen ? 'bg-violet-600 text-white border-violet-600 shadow-lg' : 'bg-white text-slate-500 border-slate-200 hover:border-violet-300'}`}
-                    >
-                      <Settings2 className="h-3.5 w-3.5" />
-                      <span>COLUMNS</span>
-                    </button>
+                  {activeTab !== "summary" && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setIsColMenuOpen(!isColMenuOpen)}
+                        className={`h-9 px-3 sm:px-4 rounded-xl border flex items-center gap-2 text-[10px] font-black tracking-widest transition-all whitespace-nowrap ${isColMenuOpen ? 'bg-violet-600 text-white border-violet-600 shadow-lg' : 'bg-white text-slate-500 border-slate-200 hover:border-violet-300'}`}
+                      >
+                        <Settings2 className="h-3.5 w-3.5" />
+                        <span>COLUMNS</span>
+                      </button>
 
-                    {isColMenuOpen && (
-                      <div className="absolute top-11 right-0 z-[100] w-48 bg-white border border-slate-100 rounded-2xl shadow-2xl p-4 animate-in fade-in slide-in-from-top-2">
-                        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-50">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Visibility</p>
-                          <button onClick={() => setIsColMenuOpen(false)}><X className="h-4 w-4 text-slate-300" /></button>
+                      {isColMenuOpen && (
+                        <div className="absolute top-11 right-0 z-[100] w-48 bg-white border border-slate-100 rounded-2xl shadow-2xl p-4 animate-in fade-in slide-in-from-top-2">
+                          <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-50">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Visibility</p>
+                            <button onClick={() => setIsColMenuOpen(false)}><X className="h-4 w-4 text-slate-300" /></button>
+                          </div>
+                          <div className="grid gap-1.5 max-h-60 overflow-y-auto pr-1">
+                            {columnConfig.map(col => (
+                              <button
+                                key={col.key}
+                                onClick={() => toggleColumn(col.key)}
+                                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all text-[11px] font-bold ${visibleColumns[col.key] ? 'bg-violet-100 text-violet-700' : 'text-slate-400 hover:bg-slate-50'}`}
+                              >
+                                <span>{col.label}</span>
+                                {visibleColumns[col.key] ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                        <div className="grid gap-1.5 max-h-60 overflow-y-auto pr-1">
-                          {columnConfig.map(col => (
-                            <button
-                              key={col.key}
-                              onClick={() => toggleColumn(col.key)}
-                              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all text-[11px] font-bold ${visibleColumns[col.key] ? 'bg-violet-100 text-violet-700' : 'text-slate-400 hover:bg-slate-50'}`}
-                            >
-                              <span>{col.label}</span>
-                              {visibleColumns[col.key] ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="max-h-[65vh] overflow-x-auto overflow-y-auto relative custom-scrollbar">
-              <table className="w-full min-w-[850px] text-center border-collapse border-separate border-spacing-0">
-                <thead className="sticky top-0 z-20 bg-violet-50">
-                  <tr className="bg-violet-50">
-                    {columnConfig.map(col => visibleColumns[col.key] && (
-                      <th key={col.key} className={`px-6 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100 ${col.key === 'date' ? 'min-w-[110px]' : ''}`}>
-                        {col.label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {(loading || historyLoading) ? (
-                    Array(8).fill(0).map((_, i) => (
-                      <tr key={i} className="animate-pulse">
-                        {columnConfig.map(col => visibleColumns[col.key] && (
-                          <td key={col.key} className="px-6 py-4"><div className="h-3 bg-slate-100 rounded w-full mx-auto"></div></td>
-                        ))}
-                      </tr>
-                    ))
-                  ) : displayList.length === 0 ? (
-                    <tr>
-                      <td colSpan={columnConfig.length} className="px-6 py-24">
-                        <div className="flex flex-col items-center gap-4 opacity-30">
-                          <Package className="h-16 w-16 text-slate-400" />
-                          <p className="text-slate-500 text-xs font-black uppercase tracking-widest">No matching records found</p>
-                        </div>
-                      </td>
+            {activeTab === "summary" && summarySubTab === "items" ? (
+              <div className="max-h-[65vh] overflow-x-auto overflow-y-auto relative custom-scrollbar">
+                <table className="w-full min-w-[950px] text-center border-collapse border-separate border-spacing-0">
+                  <thead className="sticky top-0 z-20 bg-violet-50">
+                    <tr className="bg-violet-50">
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">S.No</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Image</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100 text-left">Items Name</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Inventory Type</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Department</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Total Stock</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Total Issued</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Total Returned</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Remaining Out</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">In Store</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Dmg / Miss</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Action</th>
                     </tr>
-                  ) : (
-                    displayList.map((item, idx) => (
-                      <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
-                        {columnConfig.map(col => {
-                          if (!visibleColumns[col.key]) return null;
-                          let content = "";
-                          if (col.key === "serial") content = item.serial || idx + 1;
-                          else if (col.key === "date") content = item.date ? formatDate(item.date) : "-";
-                          else if (col.key === "itemName") content = <span className="font-bold text-slate-900 whitespace-nowrap">{item.name}</span>;
-                          else if (["purchase", "opening", "closing", "issue", "returns", "damage", "missing", "balance"].includes(col.key)) {
-                            content = item[col.key] || 0;
-                          } else if (col.key === "image") {
-                            content = item.imageUrl ? (
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {summaryLoading ? (
+                      Array(8).fill(0).map((_, i) => (
+                        <tr key={i} className="animate-pulse">
+                          {Array(12).fill(0).map((_, j) => (
+                            <td key={j} className="px-4 py-4"><div className="h-3 bg-slate-100 rounded w-full mx-auto"></div></td>
+                          ))}
+                        </tr>
+                      ))
+                    ) : displayedSummaryItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={12} className="px-6 py-24">
+                          <div className="flex flex-col items-center gap-4 opacity-30">
+                            <Package className="h-16 w-16 text-slate-400" />
+                            <p className="text-slate-500 text-xs font-black uppercase tracking-widest">No matching items found</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      displayedSummaryItems.map((item, idx) => (
+                        <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
+                          <td className="px-4 py-3.5 text-xs font-semibold text-slate-500">
+                            {(summaryPage - 1) * PAGE_SIZE + idx + 1}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            {item.imageUrl ? (
                               <div className="flex justify-center">
-                                <a href={item.imageUrl} target="_blank" rel="noopener noreferrer" className="block w-10 h-10 rounded-lg overflow-hidden border border-slate-100 shadow-sm hover:scale-110 transition-transform">
+                                <a href={item.imageUrl} target="_blank" rel="noopener noreferrer" className="block w-9 h-9 rounded-lg overflow-hidden border border-slate-100 shadow-sm hover:scale-110 transition-transform">
                                   <img src={getDisplayableImageUrl(item.imageUrl)} className="h-full w-full object-cover" alt="Item" />
                                 </a>
                               </div>
-                            ) : <span className="text-slate-200 italic text-[9px]">No Image</span>;
-                          } else {
-                            content = item[col.key] || "-";
-                          }
-                          return (
-                            <td key={col.key} className={`px-4 py-3.5 text-xs font-semibold text-slate-600 ${col.key === 'date' ? 'whitespace-nowrap' : ''}`}>
-                              {content}
-                            </td>
-                          );
-                        })}
+                            ) : (
+                              <span className="text-slate-200 italic text-[9px]">No Image</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-3.5 text-xs font-bold text-slate-900 text-left whitespace-nowrap">
+                            {item.name}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-semibold text-slate-600">
+                            {item.type || "-"}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-semibold text-slate-600">
+                            {item.department || "-"}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-bold text-slate-800">
+                            {item.totalStock.toLocaleString('en-IN')}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-bold">
+                            {item.totalIssued > 0 ? (
+                              <span className="text-blue-600 font-bold">{item.totalIssued.toLocaleString('en-IN')}</span>
+                            ) : (
+                              <span className="text-slate-300">0</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-bold">
+                            {item.totalReturned > 0 ? (
+                              <span className="text-emerald-600 font-bold">{item.totalReturned.toLocaleString('en-IN')}</span>
+                            ) : (
+                              <span className="text-slate-300">0</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs">
+                            {item.remainingOut > 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 shadow-sm">
+                                {item.remainingOut.toLocaleString('en-IN')}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-400">
+                                0
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-bold text-violet-700">
+                            {item.inStore.toLocaleString('en-IN')}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-semibold">
+                            {(item.totalDamage > 0 || item.totalMissing > 0) ? (
+                              <span className="text-rose-600 font-bold text-[11px]">{item.totalDamage} / {item.totalMissing}</span>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs">
+                            {item.totalIssued > 0 ? (
+                              <button
+                                onClick={() => {
+                                  setFilterName(item.name);
+                                  setSummarySubTab("issued");
+                                  setSummaryFilterPill("all");
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-100/80 transition-all hover:scale-105 active:scale-95"
+                                title="View issue details for this item"
+                              >
+                                <span>{item.partyCount} {item.partyCount === 1 ? 'Party' : 'Parties'}</span>
+                                <ChevronRight className="h-3 w-3" />
+                              </button>
+                            ) : (
+                              <span className="text-slate-300 text-[10px] italic">No issues</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : activeTab === "summary" && summarySubTab === "issued" ? (
+              <div className="max-h-[65vh] overflow-x-auto overflow-y-auto relative custom-scrollbar">
+                <table className="w-full min-w-[1050px] text-center border-collapse border-separate border-spacing-0">
+                  <thead className="sticky top-0 z-20 bg-violet-50">
+                    <tr className="bg-violet-50">
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Serial No</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100 text-left">Item Name</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100 text-left">Party Name</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Event Date</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Venue</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Event Type</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Issuer</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Issued</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Returned</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Remaining</th>
+                      <th className="px-4 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {summaryLoading ? (
+                      Array(8).fill(0).map((_, i) => (
+                        <tr key={i} className="animate-pulse">
+                          {Array(11).fill(0).map((_, j) => (
+                            <td key={j} className="px-4 py-4"><div className="h-3 bg-slate-100 rounded w-full mx-auto"></div></td>
+                          ))}
+                        </tr>
+                      ))
+                    ) : displayedSummaryIssued.length === 0 ? (
+                      <tr>
+                        <td colSpan={11} className="px-6 py-24">
+                          <div className="flex flex-col items-center gap-4 opacity-30">
+                            <Package className="h-16 w-16 text-slate-400" />
+                            <p className="text-slate-500 text-xs font-black uppercase tracking-widest">No matching issue records found</p>
+                          </div>
+                        </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ) : (
+                      displayedSummaryIssued.map((iss) => (
+                        <tr key={iss.id} className="hover:bg-slate-50/50 transition-colors group">
+                          <td className="px-4 py-3.5 text-xs font-mono font-bold text-slate-700">
+                            {iss.serial || '-'}
+                          </td>
+                          <td className="px-6 py-3.5 text-xs text-left">
+                            <span className="font-bold text-slate-900 block">{iss.name}</span>
+                            <span className="text-[10px] text-slate-400 block">{iss.type} • {iss.department}</span>
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-bold text-slate-800 text-left whitespace-nowrap">
+                            {iss.party}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-semibold text-slate-600 whitespace-nowrap">
+                            {iss.date ? formatDate(iss.date) : '-'}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-semibold text-slate-600">
+                            {iss.venue}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-semibold text-slate-600">
+                            {iss.eventType}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-semibold text-slate-600">
+                            {iss.issuer}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-bold text-blue-600">
+                            {iss.issued}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs font-bold text-emerald-600">
+                            {iss.returned}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs">
+                            {iss.remaining > 0 ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                {iss.remaining}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-semibold">0</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs">
+                            {iss.status === 'returned' ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <CheckCircle2 className="h-3 w-3" /> Returned
+                              </span>
+                            ) : iss.status === 'partial' ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+                                <Clock className="h-3 w-3" /> Partial
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
+                                <AlertCircle className="h-3 w-3" /> Pending
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="max-h-[65vh] overflow-x-auto overflow-y-auto relative custom-scrollbar">
+                <table className="w-full min-w-[850px] text-center border-collapse border-separate border-spacing-0">
+                  <thead className="sticky top-0 z-20 bg-violet-50">
+                    <tr className="bg-violet-50">
+                      {columnConfig.map(col => visibleColumns[col.key] && (
+                        <th key={col.key} className={`px-6 py-4 text-[10px] font-bold text-violet-600 uppercase tracking-[0.2em] bg-violet-50 border-b border-violet-100 ${col.key === 'date' ? 'min-w-[110px]' : ''}`}>
+                          {col.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {(loading || historyLoading) ? (
+                      Array(8).fill(0).map((_, i) => (
+                        <tr key={i} className="animate-pulse">
+                          {columnConfig.map(col => visibleColumns[col.key] && (
+                            <td key={col.key} className="px-6 py-4"><div className="h-3 bg-slate-100 rounded w-full mx-auto"></div></td>
+                          ))}
+                        </tr>
+                      ))
+                    ) : displayList.length === 0 ? (
+                      <tr>
+                        <td colSpan={columnConfig.length} className="px-6 py-24">
+                          <div className="flex flex-col items-center gap-4 opacity-30">
+                            <Package className="h-16 w-16 text-slate-400" />
+                            <p className="text-slate-500 text-xs font-black uppercase tracking-widest">No matching records found</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      displayList.map((item, idx) => (
+                        <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
+                          {columnConfig.map(col => {
+                            if (!visibleColumns[col.key]) return null;
+                            let content = "";
+                            if (col.key === "serial") content = item.serial || idx + 1;
+                            else if (col.key === "date") content = item.date ? formatDate(item.date) : "-";
+                            else if (col.key === "itemName") content = <span className="font-bold text-slate-900 whitespace-nowrap">{item.name}</span>;
+                            else if (["purchase", "opening", "closing", "issue", "returns", "damage", "missing", "balance"].includes(col.key)) {
+                              content = item[col.key] || 0;
+                            } else if (col.key === "image") {
+                              content = item.imageUrl ? (
+                                <div className="flex justify-center">
+                                  <a href={item.imageUrl} target="_blank" rel="noopener noreferrer" className="block w-10 h-10 rounded-lg overflow-hidden border border-slate-100 shadow-sm hover:scale-110 transition-transform">
+                                    <img src={getDisplayableImageUrl(item.imageUrl)} className="h-full w-full object-cover" alt="Item" />
+                                  </a>
+                                </div>
+                              ) : <span className="text-slate-200 italic text-[9px]">No Image</span>;
+                            } else {
+                              content = item[col.key] || "-";
+                            }
+                            return (
+                              <td key={col.key} className={`px-4 py-3.5 text-xs font-semibold text-slate-600 ${col.key === 'date' ? 'whitespace-nowrap' : ''}`}>
+                                {content}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             <Pagination
-              currentPage={activeTab === "today" ? todayPage : historyPage}
-              totalCount={activeTab === "today" ? filteredData.length : filteredHistoryData.length}
+              currentPage={activeTab === "today" ? todayPage : (activeTab === "history" ? historyPage : summaryPage)}
+              totalCount={
+                activeTab === "today"
+                  ? filteredData.length
+                  : activeTab === "history"
+                  ? filteredHistoryData.length
+                  : (summarySubTab === "items" ? filteredSummaryItems.length : filteredSummaryIssued.length)
+              }
               pageSize={PAGE_SIZE}
-              onPageChange={activeTab === "today" ? setTodayPage : setHistoryPage}
-              isLoading={loading || historyLoading}
+              onPageChange={activeTab === "today" ? setTodayPage : (activeTab === "history" ? setHistoryPage : setSummaryPage)}
+              isLoading={activeTab === "summary" ? summaryLoading : (loading || historyLoading)}
             />
           </div>
         </div>
