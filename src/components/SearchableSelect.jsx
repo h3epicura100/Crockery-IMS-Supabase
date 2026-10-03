@@ -238,6 +238,14 @@ export default function SearchableSelect({
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (filteredOptions.length > 0) {
+                          handleSelect(filteredOptions[0].value);
+                        }
+                      }
+                    }}
                     placeholder={
                       searchPlaceholder ||
                       `Search ${placeholder.replace(/^Select\s*/i, "").replace(/\.+$/, "")}...`

@@ -199,55 +199,57 @@ export default function Settings() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-4 sm:p-6 max-h-[90vh] flex flex-col">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-lg font-bold text-slate-900">{form.id ? "Edit User" : "Add User"}</h3>
-                <button onClick={() => setIsModalOpen(false)}><X className="h-5 w-5 text-slate-400" /></button>
+                <button type="button" onClick={() => setIsModalOpen(false)}><X className="h-5 w-5 text-slate-400" /></button>
               </div>
 
-              {error && (
-                <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-start gap-2">
-                  <ShieldAlert className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                  <p className="text-xs text-red-600 font-medium">{error}</p>
-                </div>
-              )}
+              <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+                {error && (
+                  <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-start gap-2">
+                    <ShieldAlert className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-600 font-medium">{error}</p>
+                  </div>
+                )}
 
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Name</label>
-                  <input value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
-                    className="mt-1 h-10 w-full px-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 outline-none text-sm" />
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Name</label>
+                    <input value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
+                      className="mt-1 h-10 w-full px-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 outline-none text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Username *</label>
+                    <input value={form.username} onChange={(e) => setForm(p => ({ ...p, username: e.target.value }))}
+                      className="mt-1 h-10 w-full px-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 outline-none text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Password {form.id ? "(leave blank to keep current)" : "*"}
+                    </label>
+                    <input type="text" value={form.password} onChange={(e) => setForm(p => ({ ...p, password: e.target.value }))}
+                      className="mt-1 h-10 w-full px-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 outline-none text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Role</label>
+                    <select value={form.role} onChange={(e) => setForm(p => ({ ...p, role: e.target.value }))}
+                      className="mt-1 h-10 w-full px-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 outline-none text-sm">
+                      <option value="user">User</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Username *</label>
-                  <input value={form.username} onChange={(e) => setForm(p => ({ ...p, username: e.target.value }))}
-                    className="mt-1 h-10 w-full px-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 outline-none text-sm" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Password {form.id ? "(leave blank to keep current)" : "*"}
-                  </label>
-                  <input type="text" value={form.password} onChange={(e) => setForm(p => ({ ...p, password: e.target.value }))}
-                    className="mt-1 h-10 w-full px-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 outline-none text-sm" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Role</label>
-                  <select value={form.role} onChange={(e) => setForm(p => ({ ...p, role: e.target.value }))}
-                    className="mt-1 h-10 w-full px-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-violet-300 outline-none text-sm">
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-              </div>
 
-              <div className="flex justify-end gap-2 mt-6">
-                <button onClick={() => setIsModalOpen(false)} className="h-10 px-4 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50">Cancel</button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="h-10 px-5 rounded-xl bg-violet-600 text-white text-xs font-bold hover:bg-violet-700 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  {form.id ? "Save Changes" : "Add User"}
-                </button>
-              </div>
+                <div className="flex justify-end gap-2 mt-6">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="h-10 px-4 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50">Cancel</button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="h-10 px-5 rounded-xl bg-violet-600 text-white text-xs font-bold hover:bg-violet-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    {form.id ? "Save Changes" : "Add User"}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

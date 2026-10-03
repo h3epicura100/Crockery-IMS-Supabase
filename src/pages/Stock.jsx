@@ -1196,8 +1196,9 @@ export default function Stock() {
                 </button>
               </div>
 
-              <form onSubmit={handlePurchaseSubmit} className="px-4 sm:px-7 py-5 space-y-4 sm:space-y-5 overflow-y-auto custom-scrollbar flex-1">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <form onSubmit={handlePurchaseSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="px-4 sm:px-7 py-5 space-y-4 sm:space-y-5 overflow-y-auto custom-scrollbar flex-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Inventory Type</label>
                     <div className="relative">
@@ -1397,16 +1398,17 @@ export default function Stock() {
                       className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 resize-none font-sans"
                     />
                   </div>
+                  </div>
+                </div>
+
+                <div className="px-4 sm:px-7 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
+                  <button type="button" onClick={() => setIsPurchaseModalOpen(false)} disabled={isSubmitting} className="px-5 py-2.5 rounded-lg text-sm font-semibold text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 transition-all font-sans">Cancel</button>
+                  <button type="submit" disabled={isSubmitting} className="px-6 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-all flex items-center gap-2 font-sans">
+                    {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {isSubmitting ? "Processing..." : "Confirm Purchase"}
+                  </button>
                 </div>
               </form>
-
-              <div className="px-4 sm:px-7 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
-                <button type="button" onClick={() => setIsPurchaseModalOpen(false)} disabled={isSubmitting} className="px-5 py-2.5 rounded-lg text-sm font-semibold text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 transition-all font-sans">Cancel</button>
-                <button onClick={handlePurchaseSubmit} disabled={isSubmitting} className="px-6 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-all flex items-center gap-2 font-sans">
-                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {isSubmitting ? "Processing..." : "Confirm Purchase"}
-                </button>
-              </div>
             </div>
           </div>
         )}
@@ -1420,8 +1422,9 @@ export default function Stock() {
                 <h3 className="text-base font-bold text-slate-800">Add Stock Item</h3>
                 <button onClick={() => setIsModalOpen(false)} className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-all font-sans"><X className="h-4 w-4" /></button>
               </div>
-              <form onSubmit={handleSubmit} className="px-4 sm:px-7 py-5 space-y-4 max-h-[72vh] overflow-y-auto custom-scrollbar font-sans flex-1">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="px-4 sm:px-7 py-5 space-y-4 max-h-[72vh] overflow-y-auto custom-scrollbar font-sans flex-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Inventory Type</label>
                     <select
@@ -1525,14 +1528,16 @@ export default function Stock() {
                   <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Remarks (Optional)</label>
                   <textarea name="remarks" value={form.remarks} onChange={handleChange} placeholder="Add any notes..." rows="2" className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 resize-none font-sans" />
                 </div>
-              </form>
+              </div>
+
               <div className="px-4 sm:px-7 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
                 <button type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting} className="px-5 py-2.5 rounded-lg text-sm font-semibold text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 transition-all font-sans">Cancel</button>
-                <button onClick={handleSubmit} disabled={isSubmitting} className="px-6 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-all flex items-center gap-2 font-sans font-sans">
+                <button type="submit" disabled={isSubmitting} className="px-6 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-all flex items-center gap-2 font-sans font-sans">
                   {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                   {isSubmitting ? "Saving..." : "Add Stock"}
                 </button>
               </div>
+            </form>
             </div>
           </div>
         )}

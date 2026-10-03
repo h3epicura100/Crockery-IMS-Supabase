@@ -2075,6 +2075,16 @@ const Inventory = () => {
                             setShowIssuerDropdown(true);
                           }}
                           onFocus={() => setShowIssuerDropdown(true)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const matches = (dropdownOptions.issuerOptions || []).filter(opt => !issueForm.issuer || opt.toLowerCase().includes(issueForm.issuer.toLowerCase()));
+                              if (showIssuerDropdown && matches.length > 0) {
+                                e.preventDefault();
+                                setIssueForm(p => ({ ...p, issuer: matches[0] }));
+                                setShowIssuerDropdown(false);
+                              }
+                            }
+                          }}
                           required
                           placeholder="Type or select..."
                           className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white"
@@ -2166,6 +2176,16 @@ const Inventory = () => {
                             setShowReturnPartyDropdown(true);
                           }}
                           onFocus={() => setShowReturnPartyDropdown(true)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const matches = uniquePartyOptions.filter(opt => !returnForm.partyName || opt.toLowerCase().includes(returnForm.partyName.toLowerCase()));
+                              if (showReturnPartyDropdown && matches.length > 0) {
+                                e.preventDefault();
+                                setReturnForm(p => ({ ...p, partyName: matches[0], inventoryType: '', itemsName: '', itemId: '' }));
+                                setShowReturnPartyDropdown(false);
+                              }
+                            }
+                          }}
                           placeholder="e.g. 6TH SEPTEMBER"
                           required
                           className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white"
@@ -2216,6 +2236,16 @@ const Inventory = () => {
                             setShowReturnInvTypeDropdown(true);
                           }}
                           onFocus={() => setShowReturnInvTypeDropdown(true)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const matches = returnInvTypeOptions.filter(opt => !returnForm.inventoryType || opt.toLowerCase().includes(returnForm.inventoryType.toLowerCase()));
+                              if (showReturnInvTypeDropdown && matches.length > 0) {
+                                e.preventDefault();
+                                setReturnForm(p => ({ ...p, inventoryType: matches[0], itemsName: '', itemId: '' }));
+                                setShowReturnInvTypeDropdown(false);
+                              }
+                            }
+                          }}
                           required
                           disabled={!returnForm.partyName}
                           placeholder={returnForm.partyName ? 'Type or select...' : 'Select party first'}
@@ -2254,6 +2284,16 @@ const Inventory = () => {
                             setShowReturnItemDropdown(true);
                           }}
                           onFocus={() => setShowReturnItemDropdown(true)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const matches = returnItemOptions.filter(opt => !returnForm.itemsName || opt.toLowerCase().includes(returnForm.itemsName.toLowerCase()));
+                              if (showReturnItemDropdown && matches.length > 0) {
+                                e.preventDefault();
+                                handleSelectReturnItem(matches[0]);
+                                setShowReturnItemDropdown(false);
+                              }
+                            }
+                          }}
                           required
                           disabled={!returnForm.inventoryType || !returnForm.partyName}
                           placeholder={!returnForm.partyName ? 'Select party first' : !returnForm.inventoryType ? 'Select type first' : 'Type or select...'}
@@ -2375,6 +2415,16 @@ const Inventory = () => {
                               setShowPartyDropdown(true);
                             }}
                             onFocus={() => setShowPartyDropdown(true)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                const matches = uniquePartyOptions.filter(opt => !issueForm.partyName || opt.toLowerCase().includes(issueForm.partyName.toLowerCase()));
+                                if (showPartyDropdown && matches.length > 0) {
+                                  e.preventDefault();
+                                  handleSelectParty(matches[0]);
+                                  setShowPartyDropdown(false);
+                                }
+                              }
+                            }}
                             required
                             placeholder="Type or select..."
                             className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 outline-none text-sm font-medium text-slate-700 bg-white"
