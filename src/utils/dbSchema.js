@@ -94,6 +94,7 @@ export const COLUMNS = {
     RETURN_QTY: 'return_qty',
     DAMAGE_QTY: 'damage_qty',
     MISSING_QTY: 'missing_qty',
+    CONSUMED_QTY: 'consumed_qty',
     DAMAGE_RATE: 'damage_rate',
     RENTING_RATE: 'renting_rate',
     OPENING_BALANCE: 'opening_balance',
@@ -112,6 +113,7 @@ export const COLUMNS = {
     TOTAL_RETURN: 'total_return',
     TOTAL_DAMAGE: 'total_damage',
     TOTAL_MISSING: 'total_missing',
+    TOTAL_CONSUMED: 'total_consumed',
     OPENING_BALANCE: 'opening_balance', // fixed for the whole day, set by rollover_day()
     CLOSING_BALANCE: 'closing_balance', // NULL until close_day() freezes it at 23:00 IST
     CURRENT_STOCK: 'current_stock', // generated column — live estimate, never write to this

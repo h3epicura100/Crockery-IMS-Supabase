@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Search,
   Loader2,
@@ -33,6 +33,12 @@ import autoTable from 'jspdf-autotable';
 
 const PAGE_SIZE = 50;
 
+export const isConsumableType = (type) => {
+  if (!type) return false;
+  const t = type.toLowerCase();
+  return t.includes('grocery') || t.includes('kirana') || t.includes('beverage') || t.includes('spices') || t.includes('dairy') || t.includes('produce');
+};
+
 const Inventory = () => {
   const [activeTab, setActiveTab] = useState('issued'); // 'issued' or 'return'
   const [isTableLoading, setIsTableLoading] = useState(true);
@@ -48,6 +54,7 @@ const Inventory = () => {
   // Data State
   const [items, setItems] = useState([]); // item_master catalog
   const [itemStockMap, setItemStockMap] = useState({}); // item_id -> inventory_current row
+  const [itemPurchasePriceMap, setItemPurchasePriceMap] = useState({}); // item_id -> latest purchase price
   const [issueHistory, setIssueHistory] = useState([]);
   const [returnHistory, setReturnHistory] = useState([]);
   const [dropdownOptions, setDropdownOptions] = useState({
@@ -129,7 +136,7 @@ const Inventory = () => {
   // to issues.damage_rate on submit), not a unit of measure.
 
   const [returnForm, setReturnForm] = useState({
-    itemId: '', inventoryType: '', department: '', itemsName: '', openingBalance: '', damageRate: '0', rentingRate: '0', totalCost: '0', partyName: '', eventDate: '', returnData: '0', returnDate: new Date().toISOString().split('T')[0], issueQty: '0', damageItems: '0', missingItems: '0', closingBalance: '', remarks: '', imageUrl: '', forType: ''
+    itemId: '', inventoryType: '', department: '', itemsName: '', openingBalance: '', damageRate: '0', rentingRate: '0', totalCost: '0', partyName: '', eventDate: '', returnData: '0', returnDate: new Date().toISOString().split('T')[0], issueQty: '0', remainingQty: '0', consumedQty: '0', damageItems: '0', missingItems: '0', closingBalance: '', remarks: '', imageUrl: '', forType: ''
   });
 
   // Cascading return dropdown options driven by issueHistory and returnHistory
@@ -277,7 +284,7 @@ const Inventory = () => {
     { key: 'type', label: 'Type' },
     { key: 'item', label: 'Item Name' },
     { key: 'issueQty', label: 'Issue Qty' },
-    { key: 'qty', label: 'Return Qty' },
+    { key: 'qty', label: 'Return / Remaining' },
     { key: 'image', label: 'Image' },
     { key: 'date', label: 'Entry Date' },
     { key: 'for', label: 'For' },
@@ -285,7 +292,7 @@ const Inventory = () => {
     { key: 'returnDate', label: 'Return Date' },
     { key: 'damage', label: 'Damage' },
     { key: 'missing', label: 'Missing' },
-    { key: 'notReturned', label: 'Total Not Returned' },
+    { key: 'notReturned', label: 'Not Returned / Consumed' },
     { key: 'totalCost', label: 'Total Cost' },
     { key: 'actions', label: 'Actions' }
   ];
@@ -385,9 +392,22 @@ const Inventory = () => {
     try {
       const table = activeTab === 'issued' ? TABLES.ISSUES : TABLES.RETURNS;
       const results = await Promise.all(Object.entries(editDataMap).map(([id, row]) => {
-        const payload = activeTab === 'issued'
-          ? { issue_qty: parseFloat(row.qty) || 0 }
-          : { return_qty: parseFloat(row.qty) || 0, damage_qty: parseFloat(row.damage) || 0, missing_qty: parseFloat(row.missing) || 0 };
+        let payload;
+        if (activeTab === 'issued') {
+          payload = { issue_qty: parseFloat(row.qty) || 0 };
+        } else {
+          const isCons = isConsumableType(row.inventoryType);
+          const retQty = parseFloat(row.qty) || 0;
+          const dmgQty = isCons ? 0 : (parseFloat(row.damage) || 0);
+          const misQty = isCons ? 0 : (parseFloat(row.missing) || 0);
+          const consQty = isCons ? Math.max(0, (parseFloat(row.issueQty) || 0) - retQty) : 0;
+          payload = {
+            return_qty: retQty,
+            damage_qty: dmgQty,
+            missing_qty: misQty,
+            consumed_qty: consQty
+          };
+        }
         return supabase.from(table).update(payload).eq(COLUMNS.ISSUES.ID, id);
       }));
       const failed = results.filter(r => r.error);
@@ -470,13 +490,29 @@ const Inventory = () => {
       }
 
       try {
-        const stockRows = await fetchAllFromTable(
-          TABLES.INVENTORY_CURRENT,
-          `${COLUMNS.INVENTORY_CURRENT.ITEM_ID}, ${COLUMNS.INVENTORY_CURRENT.CURRENT_STOCK}, ${COLUMNS.INVENTORY_CURRENT.IMAGE_URL}`
-        );
+        const [stockRows, purchaseRows] = await Promise.all([
+          fetchAllFromTable(
+            TABLES.INVENTORY_CURRENT,
+            `${COLUMNS.INVENTORY_CURRENT.ITEM_ID}, ${COLUMNS.INVENTORY_CURRENT.CURRENT_STOCK}, ${COLUMNS.INVENTORY_CURRENT.IMAGE_URL}`
+          ),
+          fetchAllFromTable(
+            TABLES.STOCK_TRANSACTIONS,
+            `${COLUMNS.STOCK_TRANSACTIONS.ITEM_ID}, ${COLUMNS.STOCK_TRANSACTIONS.PER_UNIT}, ${COLUMNS.STOCK_TRANSACTIONS.CREATED_AT}`,
+            COLUMNS.STOCK_TRANSACTIONS.CREATED_AT,
+            false
+          )
+        ]);
         const map = {};
         (stockRows || []).forEach(r => { map[r.item_id] = r; });
         setItemStockMap(map);
+
+        const priceMap = {};
+        (purchaseRows || []).forEach(r => {
+          if (r.item_id && priceMap[r.item_id] === undefined && r.per_unit != null && Number(r.per_unit) > 0) {
+            priceMap[r.item_id] = Number(r.per_unit);
+          }
+        });
+        setItemPurchasePriceMap(priceMap);
       } catch {
         // Fallback for stock map
       }
@@ -518,32 +554,45 @@ const Inventory = () => {
         createdAt: row.created_at
       })));
 
-      setReturnHistory((allReturns || []).map(row => ({
-        id: row.id,
-        serial: row.serial_no,
-        itemId: row.item_id,
-        inventoryType: row.item_master?.inventory_type,
-        department: row.item_master?.department,
-        itemName: row.item_master?.item_name,
-        partyName: row.party_name,
-        eventDate: row.event_date,
-        returnDate: row.return_date,
-        issueQty: row.issue_qty,
-        qty: row.return_qty,
-        damage: row.damage_qty,
-        missing: row.missing_qty,
-        notReturned: (Number(row.damage_qty || 0) + Number(row.missing_qty || 0)),
-        damageRate: row.damage_rate,
-        rentingRate: row.renting_rate,
-        openingBalance: row.opening_balance,
-        closingBalance: row.closing_balance,
-        totalBalance: row.total_balance,
-        imageUrl: row.image_url,
-        remarks: row.remarks,
-        totalCost: row.total_cost != null ? row.total_cost : ((Number(row.damage_qty || 0) * Number(row.damage_rate || 0)) + (Number(row.missing_qty || 0) * Number(row.damage_rate || 0))),
-        forType: row.for_type,
-        createdAt: row.created_at
-      })));
+      setReturnHistory((allReturns || []).map(row => {
+        const isCons = isConsumableType(row.item_master?.inventory_type);
+        const consQty = Number(row.consumed_qty || 0);
+        const dmgQty = Number(row.damage_qty || 0);
+        const misQty = Number(row.missing_qty || 0);
+        const dmgRate = Number(row.damage_rate || 0);
+        const rentRate = Number(row.renting_rate || 0);
+        const calculatedCost = isCons
+          ? (consQty * rentRate)
+          : ((dmgQty + misQty) * dmgRate);
+
+        return {
+          id: row.id,
+          serial: row.serial_no,
+          itemId: row.item_id,
+          inventoryType: row.item_master?.inventory_type,
+          department: row.item_master?.department,
+          itemName: row.item_master?.item_name,
+          partyName: row.party_name,
+          eventDate: row.event_date,
+          returnDate: row.return_date,
+          issueQty: row.issue_qty,
+          qty: row.return_qty,
+          damage: row.damage_qty,
+          missing: row.missing_qty,
+          consumed: row.consumed_qty != null ? row.consumed_qty : (isCons ? Math.max(0, Number(row.issue_qty || 0) - Number(row.return_qty || 0)) : 0),
+          notReturned: isCons ? (row.consumed_qty != null ? row.consumed_qty : Math.max(0, Number(row.issue_qty || 0) - Number(row.return_qty || 0))) : (dmgQty + misQty),
+          damageRate: row.damage_rate,
+          rentingRate: row.renting_rate,
+          openingBalance: row.opening_balance,
+          closingBalance: row.closing_balance,
+          totalBalance: row.total_balance,
+          imageUrl: row.image_url,
+          remarks: row.remarks,
+          totalCost: row.total_cost != null ? row.total_cost : calculatedCost,
+          forType: row.for_type,
+          createdAt: row.created_at
+        };
+      }));
     } catch {
       showToast('Failed to fetch history', 'error');
     } finally {
@@ -922,23 +971,71 @@ const Inventory = () => {
     };
   }, [issueHistory, issueForm.itemsName, issueForm.eventDate, issueForm.partyName, issueForm.foodName, issueForm.eventTime, issueForm.issueData, issueForm.openingBalance, isEditing, editingIssueId]);
 
-  // Auto-calculate Return Qty and Total Cost
+  // Resolves default Renting Rate: Master rental_price -> Latest Purchase Price -> '0'
+  const resolveRentingRate = useCallback((item) => {
+    if (!item) return '0';
+    const masterRent = Number(item.rental_price || 0);
+    if (masterRent > 0) return String(masterRent);
+    const purchasePrice = itemPurchasePriceMap[item.id];
+    if (purchasePrice != null && Number(purchasePrice) > 0) return String(purchasePrice);
+    return '0';
+  }, [itemPurchasePriceMap]);
+
+  // Resolves default Damage Rate: Master damage_price -> Latest Purchase Price -> '0'
+  const resolveDamageRate = useCallback((item) => {
+    if (!item) return '0';
+    const masterDamage = Number(item.damage_price || 0);
+    if (masterDamage > 0) return String(masterDamage);
+    const purchasePrice = itemPurchasePriceMap[item.id];
+    if (purchasePrice != null && Number(purchasePrice) > 0) return String(purchasePrice);
+    return '0';
+  }, [itemPurchasePriceMap]);
+
+  // Auto-calculate Return Qty, Consumed Qty and Total Cost
   useEffect(() => {
     if (!isReturnModalOpen) return;
+    const isConsumable = isConsumableType(returnForm.inventoryType);
     const issueQty = Number(returnForm.issueQty || 0);
-    const damage = Number(returnForm.damageItems || 0);
-    const missing = Number(returnForm.missingItems || 0);
-    const damageRate = Number(returnForm.damageRate || 0);
     const rentingRate = Number(returnForm.rentingRate || 0);
 
-    const returnQty = Math.max(0, issueQty - damage - missing);
-    const totalCost = ((damage + missing) * damageRate) + (returnQty * rentingRate);
+    if (isConsumable) {
+      const remaining = Math.max(0, Number(returnForm.remainingQty || 0));
+      const consumed = Math.max(0, issueQty - remaining);
+      const totalCost = returnForm.forType === 'H3' ? 0 : (consumed * rentingRate);
 
-    setReturnForm(prev => {
-      if (prev.returnData === returnQty.toString() && prev.totalCost === totalCost.toFixed(2)) return prev;
-      return { ...prev, returnData: returnQty.toString(), totalCost: totalCost.toFixed(2) };
-    });
-  }, [returnForm.issueQty, returnForm.damageItems, returnForm.missingItems, returnForm.damageRate, returnForm.rentingRate, isReturnModalOpen]);
+      setReturnForm(prev => {
+        const remStr = remaining.toString();
+        const consStr = consumed.toString();
+        const costStr = totalCost.toFixed(2);
+        if (prev.returnData === remStr && prev.consumedQty === consStr && prev.totalCost === costStr) return prev;
+        return { ...prev, returnData: remStr, consumedQty: consStr, totalCost: costStr };
+      });
+    } else {
+      const damage = Number(returnForm.damageItems || 0);
+      const missing = Number(returnForm.missingItems || 0);
+      const damageRate = Number(returnForm.damageRate || 0);
+
+      const returnQty = Math.max(0, issueQty - damage - missing);
+      const totalCost = ((damage + missing) * damageRate) + (returnQty * rentingRate);
+
+      setReturnForm(prev => {
+        const retStr = returnQty.toString();
+        const costStr = totalCost.toFixed(2);
+        if (prev.returnData === retStr && prev.totalCost === costStr && prev.consumedQty === '0') return prev;
+        return { ...prev, returnData: retStr, consumedQty: '0', totalCost: costStr };
+      });
+    }
+  }, [
+    returnForm.inventoryType,
+    returnForm.issueQty,
+    returnForm.remainingQty,
+    returnForm.damageItems,
+    returnForm.missingItems,
+    returnForm.damageRate,
+    returnForm.rentingRate,
+    returnForm.forType,
+    isReturnModalOpen
+  ]);
 
   const handleSelectReturnItem = (itemName) => {
     const item = items.find(i => normalizeForMatch(i.item_name) === normalizeForMatch(itemName) && i.inventory_type === returnForm.inventoryType);
@@ -955,8 +1052,10 @@ const Inventory = () => {
       department: item ? item.department : '',
       openingBalance: openingStock.toString(),
       closingBalance: (openingStock - Number(prev.issueQty || 0)).toString(),
-      damageRate: item ? String(item.damage_price ?? 0) : '0',
-      rentingRate: prev.forType === 'H3' ? '0' : (item ? String(item.rental_price ?? 0) : '0'),
+      remainingQty: '0',
+      consumedQty: prev.issueQty || '0',
+      damageRate: resolveDamageRate(item),
+      rentingRate: resolveRentingRate(item),
       imageUrl: existingImage
     }));
     if (existingImage) setImagePreview(getDisplayableImageUrl(existingImage));
@@ -1044,7 +1143,9 @@ const Inventory = () => {
     const latestIssue = matchingIssues[matchingIssues.length - 1];
     const chainForType = latestIssue ? (latestIssue.forType || 'Rent') : 'Rent';
     const item = items.find(i => normalizeForMatch(i.item_name) === itemNorm);
-    const rentingRate = chainForType === 'H3' ? 0 : (item ? parseNumber(item.rental_price) : 0);
+    const rentingRate = latestIssue && latestIssue.rentingRate != null && Number(latestIssue.rentingRate) > 0
+      ? String(latestIssue.rentingRate)
+      : resolveRentingRate(item);
 
     setReturnForm(prev => {
       const openingStock = Number(prev.openingBalance || 0);
@@ -1081,8 +1182,8 @@ const Inventory = () => {
       department: row.department || (item ? item.department : ''),
       itemsName: row.itemName || '',
       openingBalance: String(openingStock),
-      perUnit: row.rentingRate !== undefined && row.rentingRate !== null ? String(row.rentingRate) : (row.forType === 'H3' ? '0' : String(item?.rental_price ?? 0)),
-      unit: row.damageRate !== undefined && row.damageRate !== null ? String(row.damageRate) : (row.forType === 'H3' ? '0' : String(item?.damage_price ?? 0)),
+      perUnit: row.rentingRate !== undefined && row.rentingRate !== null ? String(row.rentingRate) : resolveRentingRate(item),
+      unit: row.damageRate !== undefined && row.damageRate !== null ? String(row.damageRate) : resolveDamageRate(item),
       eventDate: toInputDate(row.eventDate),
       partyName: row.partyName || '',
       eventTime: row.eventType || '',
@@ -1181,6 +1282,8 @@ const Inventory = () => {
   };
 
   const handleEditReturn = (row) => {
+    const isCons = isConsumableType(row.inventoryType);
+    const resolvedConsumed = row.consumed != null ? String(row.consumed) : (isCons ? String(Math.max(0, Number(row.issueQty || 0) - Number(row.qty || 0))) : '0');
     setReturnForm({
       itemId: row.itemId,
       inventoryType: row.inventoryType,
@@ -1190,6 +1293,8 @@ const Inventory = () => {
       eventDate: toInputDate(row.eventDate),
       returnDate: toInputDate(row.returnDate),
       issueQty: row.issueQty,
+      remainingQty: String(row.qty ?? '0'),
+      consumedQty: resolvedConsumed,
       returnData: row.qty,
       damageItems: row.damage,
       missingItems: row.missing,
@@ -1215,18 +1320,35 @@ const Inventory = () => {
         return;
       }
 
+      const isCons = isConsumableType(returnForm.inventoryType);
+      const issueQty = parseFloat(returnForm.issueQty) || 0;
+      const returnQty = parseFloat(returnForm.returnData) || 0;
+
+      if (isCons && returnQty > issueQty) {
+        showToast(`Remaining quantity (${returnQty}) cannot exceed issued quantity (${issueQty})`, 'error');
+        setIsSubmitting(false);
+        return;
+      }
+
       const imageUrl = selectedImage ? await uploadImage(selectedImage, STORAGE_FOLDERS.ISSUE_RETURN_IMAGES) : (returnForm.imageUrl || null);
-      const totalBalance = Number(returnForm.closingBalance || 0) + Number(returnForm.returnData || 0) - Number(returnForm.damageItems || 0) - Number(returnForm.missingItems || 0);
+      const damageQty = isCons ? 0 : (parseFloat(returnForm.damageItems) || 0);
+      const missingQty = isCons ? 0 : (parseFloat(returnForm.missingItems) || 0);
+      const consumedQty = isCons ? (parseFloat(returnForm.consumedQty) || 0) : 0;
+      const damageRate = isCons ? 0 : (parseFloat(returnForm.damageRate) || 0);
+      const rentingRate = parseFloat(returnForm.rentingRate) || 0;
+
+      const totalBalance = Number(returnForm.closingBalance || 0) + returnQty - damageQty - missingQty;
 
       const payload = {
         party_name: cleanText(returnForm.partyName) || null,
         return_date: returnForm.returnDate || null,
-        issue_qty: parseFloat(returnForm.issueQty) || 0,
-        return_qty: parseFloat(returnForm.returnData) || 0,
-        damage_qty: parseFloat(returnForm.damageItems) || 0,
-        missing_qty: parseFloat(returnForm.missingItems) || 0,
-        damage_rate: parseFloat(returnForm.damageRate) || 0,
-        renting_rate: parseFloat(returnForm.rentingRate) || 0,
+        issue_qty: issueQty,
+        return_qty: returnQty,
+        damage_qty: damageQty,
+        missing_qty: missingQty,
+        consumed_qty: consumedQty,
+        damage_rate: damageRate,
+        renting_rate: rentingRate,
         opening_balance: parseFloat(returnForm.openingBalance) || 0,
         closing_balance: parseFloat(returnForm.closingBalance) || 0,
         total_balance: totalBalance,
@@ -1247,7 +1369,13 @@ const Inventory = () => {
 
       showToast(isEditing ? 'Record updated successfully' : 'Return recorded successfully');
       setIsReturnModalOpen(false); setIsEditing(false); setEditingReturnId(null);
-      setReturnForm({ itemId: '', inventoryType: '', itemsName: '', department: '', openingBalance: '', damageRate: '', rentingRate: '', totalCost: '', partyName: '', eventDate: '', returnData: '', returnDate: new Date().toISOString().split('T')[0], issueQty: '', damageItems: '0', missingItems: '0', closingBalance: '', remarks: '', imageUrl: '', forType: '' });
+      setReturnForm({
+        itemId: '', inventoryType: '', itemsName: '', department: '',
+        openingBalance: '', damageRate: '', rentingRate: '', totalCost: '',
+        partyName: '', eventDate: '', returnData: '', returnDate: new Date().toISOString().split('T')[0],
+        issueQty: '', remainingQty: '0', consumedQty: '0', damageItems: '0', missingItems: '0',
+        closingBalance: '', remarks: '', imageUrl: '', forType: ''
+      });
       setSelectedImage(null); setImagePreview(null);
     } catch (err) {
       showToast(err.message || 'Failed to submit', 'error');
@@ -1936,9 +2064,17 @@ const Inventory = () => {
                                   ) : isSelected && activeTab === 'return' && col.key === 'qty' ? (
                                     <input type="number" value={currentData.qty} onChange={(e) => handleInlineEdit(row.id, 'qty', e.target.value)} className="w-20 px-2 py-1 bg-white border border-violet-200 rounded text-center text-xs font-bold text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
                                   ) : isSelected && activeTab === 'return' && col.key === 'damage' ? (
-                                    <input type="number" value={currentData.damage} onChange={(e) => handleInlineEdit(row.id, 'damage', e.target.value)} className="w-20 px-2 py-1 bg-white border border-violet-200 rounded text-center text-xs font-bold text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+                                    isConsumableType(currentData.inventoryType) ? (
+                                      <span className="text-slate-350 italic">-</span>
+                                    ) : (
+                                      <input type="number" value={currentData.damage} onChange={(e) => handleInlineEdit(row.id, 'damage', e.target.value)} className="w-20 px-2 py-1 bg-white border border-violet-200 rounded text-center text-xs font-bold text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+                                    )
                                   ) : isSelected && activeTab === 'return' && col.key === 'missing' ? (
-                                    <input type="number" value={currentData.missing} onChange={(e) => handleInlineEdit(row.id, 'missing', e.target.value)} className="w-20 px-2 py-1 bg-white border border-violet-200 rounded text-center text-xs font-bold text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+                                    isConsumableType(currentData.inventoryType) ? (
+                                      <span className="text-slate-350 italic">-</span>
+                                    ) : (
+                                      <input type="number" value={currentData.missing} onChange={(e) => handleInlineEdit(row.id, 'missing', e.target.value)} className="w-20 px-2 py-1 bg-white border border-violet-200 rounded text-center text-xs font-bold text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+                                    )
                                   ) : col.key === 'actions' ? (
                                     <div className="flex items-center justify-center gap-1.5">
                                       <button
@@ -1961,13 +2097,31 @@ const Inventory = () => {
                                   ) : col.key === 'eventDate' || col.key === 'returnDate' ? (
                                     <span className="text-slate-400 whitespace-nowrap">{formatDate(currentData[col.key])}</span>
                                   ) : col.key === 'damage' ? (
-                                    <span className="text-red-500 font-bold">{currentData.damage}</span>
+                                    isConsumableType(currentData.inventoryType) ? (
+                                      <span className="text-slate-350 italic">-</span>
+                                    ) : (
+                                      <span className="text-red-500 font-bold">{currentData.damage}</span>
+                                    )
                                   ) : col.key === 'missing' ? (
-                                    <span className="text-orange-500 font-bold">{currentData.missing}</span>
+                                    isConsumableType(currentData.inventoryType) ? (
+                                      <span className="text-slate-350 italic">-</span>
+                                    ) : (
+                                      <span className="text-orange-500 font-bold">{currentData.missing}</span>
+                                    )
                                   ) : col.key === 'issueQty' ? (
                                     <span className="font-bold text-slate-700">{currentData.issueQty != null ? currentData.issueQty : '-'}</span>
                                   ) : col.key === 'notReturned' ? (
                                     (() => {
+                                      if (isConsumableType(currentData.inventoryType)) {
+                                        const consumedVal = currentData.consumed != null
+                                          ? Number(currentData.consumed)
+                                          : Math.max(0, Number(currentData.issueQty || 0) - Number(currentData.qty || 0));
+                                        return (
+                                          <span className="font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 text-[11px] whitespace-nowrap" title="Consumed at event">
+                                            {consumedVal} consumed
+                                          </span>
+                                        );
+                                      }
                                       const val = (Number(currentData.damage || 0) + Number(currentData.missing || 0));
                                       return <span className={`font-bold ${val > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{val}</span>;
                                     })()
@@ -2047,12 +2201,9 @@ const Inventory = () => {
                       <SearchableSelect
                         value={issueForm.forType}
                         onChange={(val) => {
-                          const item = items.find(i => i.item_name === issueForm.itemsName && i.inventory_type === issueForm.inventoryType);
                           setIssueForm(p => ({
                             ...p,
-                            forType: val,
-                            perUnit: val === 'H3' ? '0' : (item ? String(item.rental_price ?? 0) : p.perUnit),
-                            unit: val === 'H3' ? '0' : (item ? String(item.damage_price ?? 0) : p.unit)
+                            forType: val
                           }));
                         }}
                         options={["Rent", "H3"]}
@@ -2102,8 +2253,8 @@ const Inventory = () => {
                               itemId: item.id,
                               department: item.department,
                               openingBalance: stock?.current_stock ?? 0,
-                              perUnit: prev.forType === 'H3' ? '0' : String(item.rental_price ?? 0),
-                              unit: prev.forType === 'H3' ? '0' : String(item.damage_price ?? 0),
+                              perUnit: resolveRentingRate(item),
+                              unit: resolveDamageRate(item),
                               imageUrl: item.image_url || stock?.image_url || ''
                             }));
                             const img = item.image_url || stock?.image_url;
@@ -2344,9 +2495,8 @@ const Inventory = () => {
                           value={issueForm.perUnit}
                           onChange={(e) => setIssueForm(p => ({ ...p, perUnit: e.target.value }))}
                           required
-                          readOnly={issueForm.forType === 'H3'}
                           placeholder="0.00"
-                          className={`w-full h-11 px-4 rounded-lg border focus:border-violet-500 text-sm font-medium ${issueForm.forType === 'H3' ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed' : 'border-slate-200'}`}
+                          className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 text-sm font-medium"
                         />
                       </div>
                     </div>
@@ -2367,9 +2517,8 @@ const Inventory = () => {
                           value={issueForm.unit}
                           onChange={(e) => setIssueForm(p => ({ ...p, unit: e.target.value }))}
                           required
-                          readOnly={issueForm.forType === 'H3'}
                           placeholder="0.00"
-                          className={`w-full h-11 px-4 rounded-lg border focus:border-violet-500 text-sm font-medium ${issueForm.forType === 'H3' ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed' : 'border-slate-200'}`}
+                          className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:border-violet-500 text-sm font-medium"
                         />
                       </div>
                       <div className="space-y-1">
@@ -2419,17 +2568,78 @@ const Inventory = () => {
                       <div className="space-y-1"><label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Issue Quantity</label><div className="h-11 flex items-center bg-slate-50/50 px-4 rounded-lg border border-slate-200 text-sm font-bold text-slate-400 italic">{returnForm.issueQty || '0'}</div></div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                      <div className="space-y-1"><label className="text-xs font-bold text-red-500 uppercase tracking-wide">Damage *</label><input type="number" onWheel={(e) => e.target.blur()} value={returnForm.damageItems} onChange={(e) => setReturnForm(p => ({ ...p, damageItems: e.target.value }))} required className="w-full h-11 px-4 rounded-lg border border-red-100 focus:border-red-500 text-sm font-medium text-red-700 bg-red-50/20" /></div>
-                      <div className="space-y-1"><label className="text-xs font-bold text-orange-500 uppercase tracking-wide">Missing *</label><input type="number" onWheel={(e) => e.target.blur()} value={returnForm.missingItems} onChange={(e) => setReturnForm(p => ({ ...p, missingItems: e.target.value }))} required className="w-full h-11 px-4 rounded-lg border border-orange-100 focus:border-orange-500 text-sm font-medium text-orange-700 bg-orange-50/20" /></div>
-                      <div className="space-y-1"><label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Damage Rate (₹)</label><div className="h-11 flex items-center bg-slate-50/50 px-4 rounded-lg border border-slate-200 text-sm font-bold text-slate-400 italic">{returnForm.damageRate || '0'}</div></div>
-                    </div>
+                    {isConsumableType(returnForm.inventoryType) ? (
+                      <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-violet-700 uppercase tracking-wide flex items-center justify-between">
+                              <span>Remaining Qty (Unused / Returned) *</span>
+                              <span className="text-[10px] text-slate-400 font-normal">Back to godown</span>
+                            </label>
+                            <input
+                              type="number"
+                              onWheel={(e) => e.target.blur()}
+                              value={returnForm.remainingQty}
+                              onChange={(e) => setReturnForm(p => ({ ...p, remainingQty: e.target.value }))}
+                              required
+                              min="0"
+                              max={returnForm.issueQty || '0'}
+                              placeholder="0"
+                              className={`w-full h-11 px-4 rounded-lg border-2 text-sm font-bold transition-all ${
+                                Number(returnForm.remainingQty || 0) > Number(returnForm.issueQty || 0)
+                                  ? 'border-red-400 bg-red-50 text-red-700'
+                                  : 'border-violet-200 focus:border-violet-500 text-violet-800 bg-violet-50/20'
+                              }`}
+                            />
+                            {Number(returnForm.remainingQty || 0) > Number(returnForm.issueQty || 0) && (
+                              <p className="text-[10px] font-bold text-red-600 mt-1">Remaining cannot exceed issued quantity ({returnForm.issueQty || 0})</p>
+                            )}
+                          </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                      <div className="space-y-1"><label className="text-xs font-bold text-fuchsia-400 uppercase tracking-wide">Return Qty (Calc)</label><div className="h-11 flex items-center bg-fuchsia-50/10 px-4 rounded-lg border border-fuchsia-100 text-sm font-bold text-fuchsia-400 italic">{returnForm.returnData || '0'}</div></div>
-                      <div className="space-y-1"><label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Renting Rate (₹)</label><div className="h-11 flex items-center bg-slate-50/50 px-4 rounded-lg border border-slate-200 text-sm font-bold text-slate-400 italic">{returnForm.rentingRate || '0'}</div></div>
-                      <div className="space-y-1"><label className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Total Cost (₹)</label><div className="h-11 flex items-center bg-emerald-50 px-4 rounded-lg border border-emerald-200 text-sm font-black text-emerald-700 shadow-inner-sm">₹{returnForm.totalCost || '0.00'}</div></div>
-                    </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-amber-600 uppercase tracking-wide flex items-center justify-between">
+                              <span>Consumed Qty (Used at Event)</span>
+                              <span className="text-[10px] text-amber-500 font-semibold">Auto-calculated</span>
+                            </label>
+                            <div className="h-11 flex items-center justify-between bg-amber-50/60 px-4 rounded-lg border border-amber-200 text-sm font-black text-amber-800">
+                              <span>{returnForm.consumedQty || '0'}</span>
+                              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-200/60 text-amber-900">
+                                Consumed
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Unit / Renting Rate (₹)</label>
+                            <div className="h-11 flex items-center bg-slate-50/50 px-4 rounded-lg border border-slate-200 text-sm font-bold text-slate-400 italic">
+                              ₹{returnForm.rentingRate || '0.00'}
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Total Consumption Cost (₹)</label>
+                            <div className="h-11 flex items-center bg-emerald-50 px-4 rounded-lg border border-emerald-200 text-sm font-black text-emerald-700 shadow-inner-sm">
+                              ₹{returnForm.totalCost || '0.00'}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                          <div className="space-y-1"><label className="text-xs font-bold text-red-500 uppercase tracking-wide">Damage *</label><input type="number" onWheel={(e) => e.target.blur()} value={returnForm.damageItems} onChange={(e) => setReturnForm(p => ({ ...p, damageItems: e.target.value }))} required className="w-full h-11 px-4 rounded-lg border border-red-100 focus:border-red-500 text-sm font-medium text-red-700 bg-red-50/20" /></div>
+                          <div className="space-y-1"><label className="text-xs font-bold text-orange-500 uppercase tracking-wide">Missing *</label><input type="number" onWheel={(e) => e.target.blur()} value={returnForm.missingItems} onChange={(e) => setReturnForm(p => ({ ...p, missingItems: e.target.value }))} required className="w-full h-11 px-4 rounded-lg border border-orange-100 focus:border-orange-500 text-sm font-medium text-orange-700 bg-orange-50/20" /></div>
+                          <div className="space-y-1"><label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Damage Rate (₹)</label><div className="h-11 flex items-center bg-slate-50/50 px-4 rounded-lg border border-slate-200 text-sm font-bold text-slate-400 italic">{returnForm.damageRate || '0'}</div></div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                          <div className="space-y-1"><label className="text-xs font-bold text-fuchsia-400 uppercase tracking-wide">Return Qty (Calc)</label><div className="h-11 flex items-center bg-fuchsia-50/10 px-4 rounded-lg border border-fuchsia-100 text-sm font-bold text-fuchsia-400 italic">{returnForm.returnData || '0'}</div></div>
+                          <div className="space-y-1"><label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Renting Rate (₹)</label><div className="h-11 flex items-center bg-slate-50/50 px-4 rounded-lg border border-slate-200 text-sm font-bold text-slate-400 italic">{returnForm.rentingRate || '0'}</div></div>
+                          <div className="space-y-1"><label className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Total Cost (₹)</label><div className="h-11 flex items-center bg-emerald-50 px-4 rounded-lg border border-emerald-200 text-sm font-black text-emerald-700 shadow-inner-sm">₹{returnForm.totalCost || '0.00'}</div></div>
+                        </div>
+                      </>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div className="space-y-1">
@@ -2446,7 +2656,14 @@ const Inventory = () => {
                   <button type="button" onClick={() => { setIsIssueModalOpen(false); setIsReturnModalOpen(false); setIsEditing(false); setEditingIssueId(null); setEditingReturnId(null); }} className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100">Cancel</button>
                   <button
                     type="submit"
-                    disabled={isSubmitting || (isIssueModalOpen && validationState.isOver) || (isReturnModalOpen && !returnForm.itemsName)}
+                    disabled={
+                      isSubmitting ||
+                      (isIssueModalOpen && validationState.isOver) ||
+                      (isReturnModalOpen && (
+                        !returnForm.itemsName ||
+                        (isConsumableType(returnForm.inventoryType) && Number(returnForm.remainingQty || 0) > Number(returnForm.issueQty || 0))
+                      ))
+                    }
                     className={`min-w-[140px] px-10 py-2.5 rounded-xl text-white text-sm font-bold shadow-xl transition-all flex items-center justify-center gap-2 ${isIssueModalOpen ? 'bg-violet-600' : 'bg-fuchsia-600'} hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {isSubmitting ? (
