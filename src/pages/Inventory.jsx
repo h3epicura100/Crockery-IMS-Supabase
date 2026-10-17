@@ -885,7 +885,8 @@ const Inventory = () => {
     return Object.entries(groups).map(([party, rows]) => {
       const latestRow = rows[0];
       const latestDate = latestRow ? latestRow.eventDate : '';
-      const totalQty = rows.reduce((sum, r) => sum + parseNumber(r.qty), 0);
+      const rawQty = rows.reduce((sum, r) => sum + parseNumber(r.qty), 0);
+      const totalQty = Math.round((rawQty + Number.EPSILON) * 100) / 100;
       const totalCost = rows.reduce((sum, r) => sum + parseNumber(r.estimatedCost), 0);
       return { partyName: party, latestDate, totalQty, totalCost, rows };
     });
@@ -1500,8 +1501,8 @@ const Inventory = () => {
           serial: 0.95,
           type: 1.0,
           item: 1.8,
-          issueQty: 0.85,
-          qty: 0.85,
+          issueQty: 0.95,
+          qty: 0.95,
           image: 0.8,
           date: 1.35,
           for: 0.55,
@@ -1555,6 +1556,13 @@ const Inventory = () => {
         const totalMissingSum = filteredReportData.reduce((sum, row) => sum + (Number(row.missing) || 0), 0);
         const totalNotReturnedSum = filteredReportData.reduce((sum, row) => sum + (Number(row.damage || 0) + Number(row.missing || 0)), 0);
 
+        const formatQtySum = (val) => {
+          if (val == null || val === '') return '-';
+          const num = Number(val);
+          if (isNaN(num) || num === 0) return '0';
+          return (Math.round((num + Number.EPSILON) * 100) / 100).toString();
+        };
+
         const footRow = {};
         reportColumns.forEach(col => {
           if (col.dataKey === 'sNo') {
@@ -1564,15 +1572,15 @@ const Inventory = () => {
           } else if (col.dataKey === 'estimatedCost') {
             footRow[col.dataKey] = `Rs ${totalEstimatedCostSum.toFixed(2)}`;
           } else if (col.dataKey === 'issueQty') {
-            footRow[col.dataKey] = totalIssueQtySum || '-';
+            footRow[col.dataKey] = formatQtySum(totalIssueQtySum);
           } else if (col.dataKey === 'qty') {
-            footRow[col.dataKey] = totalReturnQtySum || '-';
+            footRow[col.dataKey] = formatQtySum(totalReturnQtySum);
           } else if (col.dataKey === 'damage') {
-            footRow[col.dataKey] = totalDamageSum || '0';
+            footRow[col.dataKey] = formatQtySum(totalDamageSum);
           } else if (col.dataKey === 'missing') {
-            footRow[col.dataKey] = totalMissingSum || '0';
+            footRow[col.dataKey] = formatQtySum(totalMissingSum);
           } else if (col.dataKey === 'notReturned') {
-            footRow[col.dataKey] = totalNotReturnedSum || '0';
+            footRow[col.dataKey] = formatQtySum(totalNotReturnedSum);
           } else {
             footRow[col.dataKey] = '';
           }
